@@ -24,12 +24,15 @@ FRONTEND_URL=http://localhost:3000
 # ALLOWED_ORIGINS=https://your-app.vercel.app,https://your-app-git-xxx.vercel.app
 
 # Database Configuration
-# Choose one: SQLite (easier) or PostgreSQL (production-ready)
-# 
+# Choose one: SQLite (easier), DATABASE_URL (Render/Heroku), or PG_* (PostgreSQL)
+#
 # Option 1: SQLite (No installation needed - set USE_SQLITE=true)
 # USE_SQLITE=true
 #
-# Option 2: PostgreSQL (Requires PostgreSQL installation - set USE_SQLITE=false)
+# Option 2: DATABASE_URL (Render/Heroku - paste from your PostgreSQL add-on)
+# DATABASE_URL=postgresql://user:password@host:5432/dbname
+#
+# Option 3: PostgreSQL via individual vars
 USE_SQLITE=false
 PG_HOST=localhost
 PG_PORT=5432

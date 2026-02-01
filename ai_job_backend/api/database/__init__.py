@@ -13,14 +13,21 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-# Database configuration - supports both PostgreSQL and SQLite
+# Database configuration - supports SQLite, PostgreSQL, and DATABASE_URL (Render/Heroku)
 use_sqlite = os.getenv("USE_SQLITE", "false").lower() == "true"
+database_url = os.getenv("DATABASE_URL")
 
-if use_sqlite:
+if use_sqlite and not database_url:
     # Use SQLite for easier development setup
     SQLALCHEMY_DATABASE_URL = "sqlite:///./job_assistant.db"
+elif database_url:
+    # Production: use DATABASE_URL (e.g. from Render PostgreSQL add-on)
+    # Render may pass postgres:// - SQLAlchemy expects postgresql://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URL = database_url
 else:
-    # Use PostgreSQL for production
+    # PostgreSQL via individual env vars
     user = os.getenv("PG_USER", "postgres")
     password = os.getenv("PG_PASSWORD", "postgres")
     host = os.getenv("PG_HOST", "localhost")

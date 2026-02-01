@@ -9,6 +9,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
+      # Set in Render Dashboard: add PostgreSQL, then paste its Internal/External URL here
+      - key: postgresql://ai_job_backend_user:2QIXRq1ASseWHFVIA0E8NV2vHrVZHf3O@dpg-d5vflr0gjchc7399ham0-a/ai_job_backend
+        sync: false
+      # Generate a secret in Dashboard (e.g. "Generate value") or set your own
+      - key: AUTH_SECRET_KEY
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: ALLOWED_ORIGINS
