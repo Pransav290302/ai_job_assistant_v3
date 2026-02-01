@@ -1,5 +1,9 @@
 # Vercel Deployment Guide
 
+## Root Directory (Monorepo)
+
+If your repo has both `ai_job_backend` and `ai_job_frontend`, set **Root Directory** to `ai_job_frontend` in Vercel → Project Settings → General.
+
 ## Environment Variables Setup
 
 When deploying to Vercel, you need to set the following environment variables in your Vercel project settings:

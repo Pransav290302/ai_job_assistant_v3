@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { extractTextFromPdf } from "./extractPdf";
 
 // Use proxy to avoid CORS - same-origin /api/backend/* forwards to Render
 const BACKEND =
@@ -79,12 +80,53 @@ export default function AssistantPage() {
   const [scrapeResult, setScrapeResult] = useState<Record<string, unknown> | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, unknown> | null>(null);
   const [answerResult, setAnswerResult] = useState<Record<string, unknown> | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "scrape", label: "Scrape Job" },
     { id: "analyze", label: "Analyze Resume" },
     { id: "answer", label: "Generate Answer" },
   ];
+
+  async function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || file.type !== "application/pdf") {
+      setError("Please select a PDF file.");
+      return;
+    }
+    setError(null);
+    setUploadingResume(true);
+    try {
+      const text = await extractTextFromPdf(file);
+      if (!text.trim()) {
+        setError("Could not extract text from PDF. The file may be scanned or protected.");
+        return;
+      }
+      setResumeText(text);
+
+      // Extract structured profile for Generate Answer tab
+      const res = await fetchWithTimeout(`${BACKEND}/api/resume/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume_text: text }),
+      });
+      const data = await parseJsonOrThrow(res, "Resume extraction failed");
+      if (res.ok && data.success) {
+        setUserProfile({
+          work_history: String(data.work_history ?? ""),
+          skills: String(data.skills ?? ""),
+          education: String(data.education ?? ""),
+          additional_info: String(data.additional_info ?? ""),
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to process PDF");
+    } finally {
+      setUploadingResume(false);
+      e.target.value = "";
+    }
+  }
 
   async function handleScrape() {
     if (!jobUrl.trim()) {
@@ -101,7 +143,7 @@ export default function AssistantPage() {
         body: JSON.stringify({ job_url: jobUrl.trim() }),
       });
       const data = await parseJsonOrThrow(res, "Scraping failed");
-      if (!res.ok) throw new Error(data.detail || data.error || "Scraping failed");
+      if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Scraping failed"));
       setScrapeResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scraping failed");
@@ -128,7 +170,7 @@ export default function AssistantPage() {
         }),
       });
       const data = await parseJsonOrThrow(res, "Analysis failed");
-      if (!res.ok) throw new Error(data.detail || data.error || "Analysis failed");
+      if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Analysis failed"));
       setAnalyzeResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed");
@@ -162,7 +204,7 @@ export default function AssistantPage() {
         }),
       });
       const data = await parseJsonOrThrow(res, "Answer generation failed");
-      if (!res.ok) throw new Error(data.detail || data.error || "Answer generation failed");
+      if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Answer generation failed"));
       setAnswerResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Answer generation failed");
@@ -207,8 +249,9 @@ export default function AssistantPage() {
       </div>
 
       <div className="rounded-xl border border-primary-700 bg-primary-900/50 p-6 space-y-4">
-        <label className="block">
-          <span className="text-primary-200 font-medium">Job URL</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="block flex-1 min-w-0">
+            <span className="text-primary-200 font-medium">Job URL</span>
           <input
             type="url"
             value={jobUrl}
@@ -216,7 +259,25 @@ export default function AssistantPage() {
             placeholder="https://linkedin.com/jobs/..."
             className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none"
           />
-        </label>
+          </label>
+          <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handlePdfUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingResume}
+              className="px-4 py-2 rounded-lg border border-accent-500 text-accent-400 hover:bg-accent-500/10 disabled:opacity-50 text-sm font-medium"
+            >
+              {uploadingResume ? "Processing…" : "Upload Resume (PDF)"}
+            </button>
+          </div>
+        </div>
 
         {tab === "scrape" && (
           <>

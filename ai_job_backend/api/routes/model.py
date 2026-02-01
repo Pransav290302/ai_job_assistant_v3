@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from model.api_integration import (
     analyze_resume_endpoint,
+    extract_resume_profile_endpoint,
     generate_answer_endpoint,
-    scrape_job_description_endpoint
+    scrape_job_description_endpoint,
 )
 from model.utils.config import get_config
 
@@ -38,6 +39,10 @@ class GenerateAnswerRequest(BaseModel):
 
 class ScrapeJobRequest(BaseModel):
     job_url: str
+
+
+class ExtractResumeRequest(BaseModel):
+    resume_text: str
 
 
 class StatusResponse(BaseModel):
@@ -115,6 +120,24 @@ async def generate_answer(request: GenerateAnswerRequest) -> Dict:
     except Exception as e:
         logger.error(f"Error in generate_answer endpoint: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f'Internal server error: {str(e)}')
+
+
+@router.post("/resume/extract")
+async def extract_resume_profile(request: ExtractResumeRequest) -> Dict:
+    """
+    POST /api/resume/extract
+    Extracts work_history, skills, education from resume text using AI.
+    """
+    try:
+        result = extract_resume_profile_endpoint(request.resume_text)
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "Extraction failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in extract_resume_profile: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/job/scrape")

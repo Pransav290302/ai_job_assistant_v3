@@ -14,6 +14,8 @@ services:
       - key: DATABASE_URL
         sync: false
       # Generate a secret in Dashboard (e.g. "Generate value") or set your own
+      - key: OPENAI_API_KEY
+        sync: false
       - key: AUTH_SECRET_KEY
         sync: false
       - key: FRONTEND_URL

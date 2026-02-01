@@ -1,5 +1,7 @@
 # Render Backend Deployment (Vercel Frontend Integration)
 
+> See [DEPLOYMENT.md](./DEPLOYMENT.md) for a full deployment checklist.
+
 This guide helps you fix **"Failed to fetch"** when your Vercel frontend calls your Render backend.
 
 ## Why "Failed to fetch" Happens

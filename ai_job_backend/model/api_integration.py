@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from model.job_assistant_service import JobAssistantService
 from model.job_scraper import scrape_job_description
 from model.resume_analyzer import analyze_resume_and_jd
+from model.resume_extractor import extract_profile_from_resume
 from model.answer_generator import generate_tailored_answer
 from model.utils.config import Config, get_config
 from model.utils.logging_config import setup_logging
@@ -120,6 +121,17 @@ def generate_answer_endpoint(question: str, user_profile: Dict, job_url: str) ->
         }
 
 
+def extract_resume_profile_endpoint(resume_text: str) -> Dict:
+    """Extract work_history, skills, education from resume text using AI."""
+    logger.info("Extract resume profile endpoint called")
+    try:
+        profile = extract_profile_from_resume(resume_text)
+        return {"success": True, **profile}
+    except Exception as e:
+        logger.error(f"Error in extract_resume_profile_endpoint: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
 def scrape_job_description_endpoint(job_url: str) -> Dict:
     """
     API endpoint function for scraping job descriptions.
@@ -141,7 +153,11 @@ def scrape_job_description_endpoint(job_url: str) -> Dict:
     
     try:
         config = get_config()
-        text = scrape_job_description(job_url, use_selenium=config.USE_SELENIUM)
+        text = scrape_job_description(
+            job_url,
+            use_selenium=config.USE_SELENIUM,
+            use_playwright=config.USE_PLAYWRIGHT,
+        )
         return {
             'success': True,
             'text': text,

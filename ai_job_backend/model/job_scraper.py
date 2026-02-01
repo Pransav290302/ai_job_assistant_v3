@@ -489,13 +489,14 @@ class JobScraper:
         self.close()
 
 
-def scrape_job_description(url: str, use_selenium: bool = False) -> str:
+def scrape_job_description(url: str, use_selenium: bool = False, use_playwright: bool = True) -> str:
     """
     Convenience function for simple scraping use cases.
     
     Args:
         url: Job posting URL
         use_selenium: Whether to use Selenium for JavaScript-heavy sites
+        use_playwright: Whether to use Playwright (works on Render; default True)
         
     Returns:
         Extracted job description text
@@ -503,7 +504,7 @@ def scrape_job_description(url: str, use_selenium: bool = False) -> str:
     Raises:
         ValueError: If scraping fails
     """
-    with JobScraper(use_selenium=use_selenium) as scraper:
+    with JobScraper(use_selenium=use_selenium, use_playwright=use_playwright) as scraper:
         result = scraper.scrape(url)
         
         if result['success']:
@@ -512,21 +513,11 @@ def scrape_job_description(url: str, use_selenium: bool = False) -> str:
             raise ValueError(f"Failed to scrape job description: {result.get('error', 'Unknown error')}")
 
 
-async def scrape_job_description_async(url: str, use_selenium: bool = False) -> str:
+async def scrape_job_description_async(url: str, use_selenium: bool = False, use_playwright: bool = True) -> str:
     """
     Async convenience function for scraping in async routes.
-    
-    Args:
-        url: Job posting URL
-        use_selenium: Whether to use Selenium for JavaScript-heavy sites
-        
-    Returns:
-        Extracted job description text
-        
-    Raises:
-        ValueError: If scraping fails
     """
-    scraper = JobScraper(use_selenium=use_selenium)
+    scraper = JobScraper(use_selenium=use_selenium, use_playwright=use_playwright)
     try:
         result = await scraper.scrape_async(url)
         if result['success']:

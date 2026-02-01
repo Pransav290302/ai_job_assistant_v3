@@ -3,8 +3,10 @@ Resume Analyzer Agent
 Analyzes resume against job description to provide match score and suggestions.
 """
 
+import json
 import logging
 import os
+import re
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
@@ -92,10 +94,6 @@ Format your response as valid JSON only."""
         )
         
         response_text = completion.choices[0].message.content.strip()
-        
-        # Try to parse JSON from response
-        import json
-        import re
         
         # Extract JSON from response (in case there's extra text)
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
