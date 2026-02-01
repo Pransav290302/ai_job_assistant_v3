@@ -10,18 +10,18 @@ from pydantic import BaseModel, HttpUrl
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
-from datascientist.api_integration import (
+from model.api_integration import (
     analyze_resume_endpoint,
     generate_answer_endpoint,
     scrape_job_description_endpoint
 )
-from datascientist.utils.config import get_config
+from model.utils.config import get_config
 
 # Load environment variables from .env file
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api", tags=["datascientist"])
+router = APIRouter(prefix="/api", tags=["model"])
 
 
 # Request/Response Models

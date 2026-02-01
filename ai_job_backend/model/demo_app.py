@@ -11,12 +11,12 @@ import os
 from pathlib import Path
 
 # Import the data science module functions
-from datascientist.api_integration import (
+from model.api_integration import (
     analyze_resume_endpoint,
     generate_answer_endpoint,
     scrape_job_description_endpoint
 )
-from datascientist.utils import setup_logging, get_config
+from model.utils import setup_logging, get_config
 
 # Set up logging
 setup_logging(log_level="INFO")

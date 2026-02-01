@@ -1,3 +1,3 @@
 """
-Test modules for datascientist package.
+Test modules for model package.
 """

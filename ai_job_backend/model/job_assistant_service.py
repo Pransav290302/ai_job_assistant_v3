@@ -8,9 +8,9 @@ import os
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
-from datascientist.job_scraper import JobScraper, scrape_job_description
-from datascientist.resume_analyzer import analyze_resume_and_jd
-from datascientist.answer_generator import generate_tailored_answer
+from model.job_scraper import JobScraper, scrape_job_description
+from model.resume_analyzer import analyze_resume_and_jd
+from model.answer_generator import generate_tailored_answer
 
 # Load environment variables from .env file
 load_dotenv()
@@ -100,7 +100,7 @@ class JobAssistantService:
             
             # Use mock response if API fails (for demo/presentation)
             if 'quota' in error_msg.lower() or '429' in error_msg or 'insufficient' in error_msg.lower():
-                from datascientist.mock_ai import get_mock_resume_analysis
+                from model.mock_ai import get_mock_resume_analysis
                 logger.info("Using mock analysis for demonstration")
                 analysis = get_mock_resume_analysis(resume_text, job_description)
                 return {
@@ -173,7 +173,7 @@ class JobAssistantService:
             
             # Use mock response if API fails (for demo/presentation)
             if 'quota' in error_msg.lower() or '429' in error_msg or 'insufficient' in error_msg.lower():
-                from datascientist.mock_ai import get_mock_tailored_answer
+                from model.mock_ai import get_mock_tailored_answer
                 logger.info("Using mock answer for demonstration")
                 answer = get_mock_tailored_answer(question, user_profile, job_description)
                 return {

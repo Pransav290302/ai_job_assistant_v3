@@ -9,12 +9,12 @@ import os
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
-from datascientist.job_assistant_service import JobAssistantService
-from datascientist.job_scraper import scrape_job_description
-from datascientist.resume_analyzer import analyze_resume_and_jd
-from datascientist.answer_generator import generate_tailored_answer
-from datascientist.utils.config import Config, get_config
-from datascientist.utils.logging_config import setup_logging
+from model.job_assistant_service import JobAssistantService
+from model.job_scraper import scrape_job_description
+from model.resume_analyzer import analyze_resume_and_jd
+from model.answer_generator import generate_tailored_answer
+from model.utils.config import Config, get_config
+from model.utils.logging_config import setup_logging
 
 # Load environment variables from .env file
 load_dotenv()

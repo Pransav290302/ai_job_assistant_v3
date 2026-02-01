@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import models
 from api.database import engine
-from api.routes import auth, jobs, health, datascientist
+from api.routes import auth, jobs, health, model
 
 # Force Windows-specific event loop policy for Playwright
 if sys.platform == 'win32':
@@ -23,7 +23,7 @@ app = FastAPI(title="AI Job Application Assistant")
 app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(health.router)
-app.include_router(datascientist.router)
+app.include_router(model.router)
 
 # Configure CORS – localhost + Vercel production and preview URLs
 _frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")

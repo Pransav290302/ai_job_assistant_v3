@@ -15,6 +15,6 @@ psycopg2-binary==2.9.9
 passlib[bcrypt]==1.7.4
 python-jose==3.3.0
 email-validator==2.3.0
-# Optional: For demo app (datascientist/demo_app.py)
+# Optional: For demo app (model/demo_app.py)
 flask==3.0.3
 flask-cors==4.0.1

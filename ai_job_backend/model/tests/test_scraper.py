@@ -3,7 +3,7 @@ Unit tests for job scraper
 """
 
 import unittest
-from datascientist.job_scraper import JobScraper, scrape_job_description
+from model.job_scraper import JobScraper, scrape_job_description
 
 
 class TestJobScraper(unittest.TestCase):
