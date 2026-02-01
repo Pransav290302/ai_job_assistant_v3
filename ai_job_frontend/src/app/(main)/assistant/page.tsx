@@ -5,6 +5,34 @@ import { useState } from "react";
 const BACKEND =
   process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "";
 
+// Render free tier cold-starts in ~50–90s; use long timeout
+const FETCH_TIMEOUT_MS = 90000;
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit & { timeout?: number } = {}
+): Promise<Response> {
+  const { timeout = FETCH_TIMEOUT_MS, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...fetchOptions, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    if (e instanceof Error) {
+      if (e.name === "AbortError")
+        throw new Error("Request timed out. The backend may be waking up (Render cold start takes ~1 min). Try again.");
+      if (e.message === "Failed to fetch")
+        throw new Error(
+          "Cannot reach backend. Check CORS (FRONTEND_URL/ALLOWED_ORIGINS on Render) and NEXT_PUBLIC_BACKEND_URL on Vercel."
+        );
+    }
+    throw e;
+  }
+}
+
 type Tab = "scrape" | "analyze" | "answer";
 
 export default function AssistantPage() {
@@ -39,7 +67,7 @@ export default function AssistantPage() {
     setLoading(true);
     setScrapeResult(null);
     try {
-      const res = await fetch(`${BACKEND}/api/job/scrape`, {
+      const res = await fetchWithTimeout(`${BACKEND}/api/job/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_url: jobUrl.trim() }),
@@ -63,7 +91,7 @@ export default function AssistantPage() {
     setLoading(true);
     setAnalyzeResult(null);
     try {
-      const res = await fetch(`${BACKEND}/api/resume/analyze`, {
+      const res = await fetchWithTimeout(`${BACKEND}/api/resume/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -96,7 +124,7 @@ export default function AssistantPage() {
       additional_info: userProfile.additional_info || "",
     };
     try {
-      const res = await fetch(`${BACKEND}/api/generate/answer`, {
+      const res = await fetchWithTimeout(`${BACKEND}/api/generate/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

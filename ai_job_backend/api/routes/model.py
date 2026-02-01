@@ -44,6 +44,7 @@ class StatusResponse(BaseModel):
     status: str
     openai_configured: bool
     selenium_enabled: bool
+    playwright_enabled: bool
     model: str
 
 
@@ -154,5 +155,6 @@ async def get_status() -> StatusResponse:
         status='running',
         openai_configured=bool(config.OPENAI_API_KEY),
         selenium_enabled=config.USE_SELENIUM,
+        playwright_enabled=config.USE_PLAYWRIGHT,
         model=config.OPENAI_MODEL
     )

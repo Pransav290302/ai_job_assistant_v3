@@ -21,6 +21,9 @@ class Config:
     
     # Scraper Configuration
     USE_SELENIUM: bool = os.getenv('USE_SELENIUM', 'false').lower() == 'true'
+    USE_PLAYWRIGHT: bool = os.getenv('USE_PLAYWRIGHT', 'true').lower() == 'true'  # Works on Render
+    USE_STEALTH: bool = os.getenv('USE_STEALTH', 'true').lower() == 'true'  # Anti-detection for LinkedIn/Glassdoor
+    BROWSERLESS_URL: Optional[str] = os.getenv('BROWSERLESS_URL')  # wss://...?token=XXX - 6 hrs free/month
     SELENIUM_HEADLESS: bool = os.getenv('SELENIUM_HEADLESS', 'true').lower() == 'true'
     
     # Logging Configuration

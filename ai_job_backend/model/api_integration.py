@@ -39,6 +39,7 @@ def get_service() -> JobAssistantService:
         config = get_config()
         _service_instance = JobAssistantService(
             use_selenium=config.USE_SELENIUM,
+            use_playwright=config.USE_PLAYWRIGHT,
             llm_model=config.OPENAI_MODEL,
             llm_api_key=config.OPENAI_API_KEY,
             llm_base_url=config.OPENAI_BASE_URL

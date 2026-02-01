@@ -29,6 +29,22 @@ except ImportError:
     SELENIUM_AVAILABLE = False
     logger.warning("Selenium not available. Selenium-based scraping will be disabled.")
 
+# Optional Playwright imports - works on Render with: playwright install chromium
+try:
+    from playwright.sync_api import sync_playwright
+    from playwright.async_api import async_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    logger.warning("Playwright not available. Playwright-based scraping will be disabled.")
+
+# Optional playwright-stealth - reduces headless detection (LinkedIn, Glassdoor)
+try:
+    from playwright_stealth import Stealth
+    STEALTH_AVAILABLE = True
+except ImportError:
+    STEALTH_AVAILABLE = False
+
 
 class JobScraper:
     """
@@ -85,15 +101,20 @@ class JobScraper:
         }
     }
     
-    def __init__(self, use_selenium: bool = False, headless: bool = True):
+    # Sites that need JavaScript rendering (LinkedIn, Glassdoor, etc.)
+    JS_SITES = ("linkedin", "glassdoor")
+
+    def __init__(self, use_selenium: bool = False, use_playwright: bool = False, headless: bool = True):
         """
         Initialize the job scraper.
         
         Args:
             use_selenium: Whether to use Selenium for JavaScript-heavy sites
-            headless: Run browser in headless mode (only if use_selenium=True)
+            use_playwright: Whether to use Playwright (works on Render free tier with chromium)
+            headless: Run browser in headless mode
         """
         self.use_selenium = use_selenium and SELENIUM_AVAILABLE
+        self.use_playwright = use_playwright and PLAYWRIGHT_AVAILABLE
         self.headless = headless
         self.driver = None
         self.session = requests.Session()
@@ -322,45 +343,112 @@ class JobScraper:
         except Exception as e:
             logger.error(f"Error scraping with Selenium: {str(e)}")
             return None
-    
-    def scrape(self, url: str, force_selenium: bool = False) -> Dict[str, any]:
+
+    def _scrape_with_playwright(self, url: str) -> Optional[str]:
         """
-        Main scraping method that handles both static and dynamic sites.
-        
-        Args:
-            url: Job posting URL
-            force_selenium: Force use of Selenium even if not configured
-            
-        Returns:
-            Dictionary with 'success', 'text', and 'error' keys
+        Scrape using Playwright with stealth (LinkedIn, Glassdoor on Render free tier).
+        Supports Browserless (6 hrs free/month) for different IPs.
+        """
+        if not PLAYWRIGHT_AVAILABLE:
+            return None
+        try:
+            html = asyncio.run(self._scrape_playwright_async(url))
+            if not html:
+                return None
+            try:
+                soup = BeautifulSoup(html, "lxml")
+            except Exception:
+                soup = BeautifulSoup(html, "html.parser")
+            site = self._detect_site(url)
+            if site in self.SITE_SELECTORS:
+                config = self.SITE_SELECTORS[site]
+                text = self._extract_with_selectors(
+                    soup, config["content_selectors"], config["exclude_selectors"]
+                )
+                if text:
+                    return text
+            return self._extract_generic(soup)
+        except Exception as e:
+            logger.error(f"Error scraping with Playwright: {str(e)}")
+            return None
+
+    async def _scrape_playwright_async(self, url: str) -> Optional[str]:
+        """Async Playwright scrape with stealth + optional Browserless."""
+        from model.utils.config import get_config
+        config = get_config()
+        browserless_url = config.BROWSERLESS_URL
+        use_stealth = config.USE_STEALTH and STEALTH_AVAILABLE
+
+        launch_args = {
+            "headless": self.headless,
+            "args": [
+                "--disable-blink-features=AutomationControlled",
+                "--disable-dev-shm-usage",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-infobars",
+                "--window-size=1920,1080",
+            ],
+        }
+
+        async with async_playwright() as p:
+            if browserless_url:
+                browser = await p.chromium.connect_over_cdp(browserless_url)
+                logger.info("Using Browserless (remote browser)")
+            else:
+                browser = await p.chromium.launch(**launch_args)
+
+            context = await browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                locale="en-US",
+                extra_http_headers={"Accept-Language": "en-US,en;q=0.9"},
+            )
+            if use_stealth and STEALTH_AVAILABLE:
+                await Stealth().apply_stealth_async(context)
+
+            page = await context.new_page()
+            await page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            await asyncio.sleep(3)  # Allow dynamic content (LinkedIn/Glassdoor)
+            html = await page.content()
+            await browser.close()
+        return html
+
+    def scrape(self, url: str, force_selenium: bool = False, force_playwright: bool = False) -> Dict[str, any]:
+        """
+        Main scraping method. Order: requests → Playwright → Selenium.
+        Playwright works on Render free tier (add 'playwright install chromium' to build).
         """
         logger.info(f"Scraping job description from: {url}")
-        
-        # Try requests first (faster)
-        if not force_selenium and not self.use_selenium:
+        site = self._detect_site(url)
+        needs_js = site in self.JS_SITES
+
+        # For LinkedIn/Glassdoor: Playwright first (requests usually returns login wall)
+        if needs_js and (self.use_playwright or force_playwright):
+            text = self._scrape_with_playwright(url)
+            if text and len(text) > 200:
+                logger.info(f"Scraped {len(text)} chars using Playwright")
+                return {"success": True, "text": text, "method": "playwright", "url": url}
+
+        # For other sites: try requests first (faster)
+        if not force_playwright and not force_selenium:
             text = self._scrape_with_requests(url)
-            if text and len(text) > 200:  # Valid content found
-                logger.info(f"Successfully scraped {len(text)} characters using requests")
-                return {
-                    'success': True,
-                    'text': text,
-                    'method': 'requests',
-                    'url': url
-                }
-        
-        # Fallback to Selenium if needed
+            if text and len(text) > 200:
+                logger.info(f"Scraped {len(text)} chars using requests")
+                return {"success": True, "text": text, "method": "requests", "url": url}
+
+        # Playwright for JS sites we missed, or as fallback
+        if self.use_playwright or force_playwright:
+            text = self._scrape_with_playwright(url)
+            if text and len(text) > 200:
+                return {"success": True, "text": text, "method": "playwright", "url": url}
+
+        # Selenium fallback (needs Chrome - not on Render default)
         if self.use_selenium or force_selenium:
             text = self._scrape_with_selenium(url)
             if text and len(text) > 200:
-                logger.info(f"Successfully scraped {len(text)} characters using Selenium")
-                return {
-                    'success': True,
-                    'text': text,
-                    'method': 'selenium',
-                    'url': url
-                }
-        
-        # If both methods failed
+                return {"success": True, "text": text, "method": "selenium", "url": url}
+
         logger.warning(f"Failed to extract meaningful content from {url}")
         return {
             'success': False,

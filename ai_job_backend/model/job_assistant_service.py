@@ -24,18 +24,19 @@ class JobAssistantService:
     This is the primary interface for backend integration.
     """
     
-    def __init__(self, use_selenium: bool = False, llm_model: str = "gpt-3.5-turbo", 
+    def __init__(self, use_selenium: bool = False, use_playwright: bool = True, llm_model: str = "gpt-3.5-turbo",
                  llm_api_key: Optional[str] = None, llm_base_url: Optional[str] = None):
         """
         Initialize the job assistant service.
         
         Args:
             use_selenium: Whether to use Selenium for scraping
+            use_playwright: Whether to use Playwright (works on Render free tier)
             llm_model: Model name (default: gpt-3.5-turbo)
             llm_api_key: API key (optional, reads from env if not provided)
             llm_base_url: Base URL for API (optional, uses OpenAI default if not provided)
         """
-        self.scraper = JobScraper(use_selenium=use_selenium)
+        self.scraper = JobScraper(use_selenium=use_selenium, use_playwright=use_playwright)
         self.llm_model = llm_model or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         # Use provided API key or get from environment
         self.llm_api_key = llm_api_key or os.getenv("OPENAI_API_KEY")

@@ -3,14 +3,15 @@ services:
     name: ai-job-backend
     env: python
     rootDir: ai_job_backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && playwright install chromium
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
-      # Set in Render Dashboard: add PostgreSQL, then paste its Internal/External URL here
-      - key: postgresql://ai_job_backend_user:2QIXRq1ASseWHFVIA0E8NV2vHrVZHf3O@dpg-d5vflr0gjchc7399ham0-a/ai_job_backend
+      # Add PostgreSQL in Render Dashboard → Connect to this service (auto-injects DATABASE_URL)
+      # Or set manually: key DATABASE_URL, value = postgresql://user:pass@host/db
+      - key: DATABASE_URL
         sync: false
       # Generate a secret in Dashboard (e.g. "Generate value") or set your own
       - key: AUTH_SECRET_KEY
@@ -18,4 +19,7 @@ services:
       - key: FRONTEND_URL
         sync: false
       - key: ALLOWED_ORIGINS
+        sync: false
+      # Optional: Browserless (6 hrs free/month) - different IPs for LinkedIn/Glassdoor
+      - key: BROWSERLESS_URL
         sync: false
