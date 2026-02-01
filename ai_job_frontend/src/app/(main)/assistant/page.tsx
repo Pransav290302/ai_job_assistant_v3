@@ -172,6 +172,25 @@ export default function AssistantPage() {
       const data = await parseJsonOrThrow(res, "Analysis failed");
       if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Analysis failed"));
       setAnalyzeResult(data);
+      // Auto-extract profile for Generate Answer tab (works for pasted text too, not just PDF)
+      try {
+        const extractRes = await fetchWithTimeout(`${BACKEND}/api/resume/extract`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume_text: resumeText.trim() }),
+        });
+        const extractData = await parseJsonOrThrow(extractRes, "Extract failed");
+        if (extractRes.ok && extractData.success) {
+          setUserProfile({
+            work_history: String(extractData.work_history ?? ""),
+            skills: String(extractData.skills ?? ""),
+            education: String(extractData.education ?? ""),
+            additional_info: String(extractData.additional_info ?? ""),
+          });
+        }
+      } catch {
+        // Ignore extract errors; user can still use Generate Answer with existing profile
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
@@ -249,34 +268,17 @@ export default function AssistantPage() {
       </div>
 
       <div className="rounded-xl border border-primary-700 bg-primary-900/50 p-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="block flex-1 min-w-0">
+        <div>
+          <label className="block">
             <span className="text-primary-200 font-medium">Job URL</span>
-          <input
-            type="url"
-            value={jobUrl}
-            onChange={(e) => setJobUrl(e.target.value)}
-            placeholder="https://linkedin.com/jobs/..."
-            className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none"
-          />
-          </label>
-          <div className="flex items-end gap-2">
             <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              onChange={handlePdfUpload}
-              className="hidden"
+              type="url"
+              value={jobUrl}
+              onChange={(e) => setJobUrl(e.target.value)}
+              placeholder="https://linkedin.com/jobs/..."
+              className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingResume}
-              className="px-4 py-2 rounded-lg border border-accent-500 text-accent-400 hover:bg-accent-500/10 disabled:opacity-50 text-sm font-medium"
-            >
-              {uploadingResume ? "Processing…" : "Upload Resume (PDF)"}
-            </button>
-          </div>
+          </label>
         </div>
 
         {tab === "scrape" && (
@@ -298,16 +300,33 @@ export default function AssistantPage() {
 
         {tab === "analyze" && (
           <>
-            <label className="block">
-              <span className="text-primary-200 font-medium">Resume text</span>
+            <div className="block">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+                <span className="text-primary-200 font-medium">Resume text</span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handlePdfUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingResume}
+                  className="px-4 py-2 rounded-lg border border-accent-500 text-accent-400 hover:bg-accent-500/10 disabled:opacity-50 text-sm font-medium"
+                >
+                  {uploadingResume ? "Processing…" : "Upload Resume (PDF)"}
+                </button>
+              </div>
               <textarea
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume text here..."
+                placeholder="Paste your resume text here or upload a PDF..."
                 rows={6}
-                className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
+                className="w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
               />
-            </label>
+            </div>
             <button
               onClick={handleAnalyze}
               disabled={loading}
@@ -325,6 +344,11 @@ export default function AssistantPage() {
 
         {tab === "answer" && (
           <>
+            <p className="text-sm text-primary-300">
+              {userProfile.work_history || userProfile.skills || userProfile.education
+                ? "Using profile from your resume (Analyze Resume tab)."
+                : "Upload or paste your resume on the Analyze Resume tab first—your profile will be auto-filled for tailored answers."}
+            </p>
             <label className="block">
               <span className="text-primary-200 font-medium">Application question</span>
               <input
@@ -335,44 +359,6 @@ export default function AssistantPage() {
                 className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none"
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-primary-200 font-medium">Work history</span>
-                <textarea
-                  value={userProfile.work_history}
-                  onChange={(e) => setUserProfile((p) => ({ ...p, work_history: e.target.value }))}
-                  rows={2}
-                  className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 focus:border-accent-500 focus:outline-none resize-y"
-                />
-              </label>
-              <label className="block">
-                <span className="text-primary-200 font-medium">Skills (comma-separated)</span>
-                <input
-                  type="text"
-                  value={userProfile.skills}
-                  onChange={(e) => setUserProfile((p) => ({ ...p, skills: e.target.value }))}
-                  className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 focus:border-accent-500 focus:outline-none"
-                />
-              </label>
-              <label className="block">
-                <span className="text-primary-200 font-medium">Education</span>
-                <input
-                  type="text"
-                  value={userProfile.education}
-                  onChange={(e) => setUserProfile((p) => ({ ...p, education: e.target.value }))}
-                  className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 focus:border-accent-500 focus:outline-none"
-                />
-              </label>
-              <label className="block">
-                <span className="text-primary-200 font-medium">Additional info</span>
-                <textarea
-                  value={userProfile.additional_info}
-                  onChange={(e) => setUserProfile((p) => ({ ...p, additional_info: e.target.value }))}
-                  rows={2}
-                  className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 focus:border-accent-500 focus:outline-none resize-y"
-                />
-              </label>
-            </div>
             <button
               onClick={handleGenerateAnswer}
               disabled={loading}
@@ -390,8 +376,13 @@ export default function AssistantPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-900/30 border border-red-700 text-red-200 px-4 py-2">
-          {error}
+        <div className="rounded-lg bg-red-900/30 border border-red-700 text-red-200 px-4 py-2 space-y-1">
+          <p>{error}</p>
+          {(error.includes("Scraping failed") || error.includes("Analysis failed") || error.includes("unreachable") || error.includes("timed out")) && (
+            <p className="text-sm text-red-300/90">
+              Tip: Ensure <code className="bg-red-900/50 px-1 rounded">NEXT_PUBLIC_BACKEND_URL</code> is set in Vercel to your Render backend. If the backend just started, wait ~1 min (cold start) and try again. LinkedIn may block scrapers—try a different job URL if needed.
+            </p>
+          )}
         </div>
       )}
     </div>
