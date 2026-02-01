@@ -1,10 +1,3 @@
-"""
-ORM models for the application.
-
-- Kept small and focused (User, Job).
-- Importing Base from api.database keeps declarative registry centralized.
-"""
-
 from typing import Any, List, Optional
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String, Text

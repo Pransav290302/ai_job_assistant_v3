@@ -1,10 +1,3 @@
-"""
-Shared FastAPI dependencies.
-
-- Password hashing, JWT decode, DB session factory.
-- Keeps auth and DB concerns separate from route handlers.
-"""
-
 import os
 from typing import Annotated
 
@@ -39,7 +32,6 @@ oauth2_bearer_dependency = Annotated[str, Depends(oauth2_bearer)]
 
 
 async def get_current_user(token: oauth2_bearer_dependency):
-    """Decode JWT and return basic user identity."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str | None = payload.get("sub")

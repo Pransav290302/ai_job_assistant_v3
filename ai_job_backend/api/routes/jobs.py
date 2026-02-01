@@ -11,16 +11,13 @@ from api import models
 from api.dependencies import db_dependency, user_dependency
 from api.schemas import JobAnalysisRequest, JobAnalysisResponse
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Ensure Windows event loop works for Playwright when imported directly
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-# Initialize OpenAI client with environment variables
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError(

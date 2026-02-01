@@ -20,6 +20,8 @@ export default async function middleware(req: NextRequest) {
     normalizedPath === "/" ||
     normalizedPath === "/about" ||
     normalizedPath.startsWith("/about/") ||
+    normalizedPath === "/assistant" ||
+    normalizedPath.startsWith("/assistant/") ||
     normalizedPath.startsWith("/auth");
   const isOnboardingPath =
     normalizedPath.startsWith("/preferences") || normalizedPath.startsWith("/setup");
@@ -33,6 +35,8 @@ export default async function middleware(req: NextRequest) {
   const isAlwaysPublicPath =
     normalizedPath === "/about" ||
     normalizedPath.startsWith("/about/") ||
+    normalizedPath === "/assistant" ||
+    normalizedPath.startsWith("/assistant/") ||
     normalizedPath.startsWith("/auth");
   if (isAlwaysPublicPath) {
     return NextResponse.next({

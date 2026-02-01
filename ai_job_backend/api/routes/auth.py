@@ -39,7 +39,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 @router.post("/register", status_code=201)
 def register_user(payload: UserCreate, db: db_dependency):
-    """Register a new user with hashed password."""
+
     existing = db.query(models.User).filter(models.User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -80,5 +80,4 @@ def login_for_access_token(
 
 @router.get("/me")
 def read_current_user(user: user_dependency):
-    """Return the current authenticated user."""
     return user
