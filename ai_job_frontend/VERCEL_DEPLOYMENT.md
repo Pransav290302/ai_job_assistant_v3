@@ -6,9 +6,9 @@ When deploying to Vercel, you need to set the following environment variables in
 
 ### Required Variables
 
-1. **NEXT_PUBLIC_API_URL**
-   - Your Render backend service URL
-   - Example: `https://your-app.onrender.com`
+1. **NEXT_PUBLIC_API_URL** or **NEXT_PUBLIC_BACKEND_URL**
+   - Your Render backend service URL (either variable works; both are supported)
+   - Example: `https://ai-job-backend.onrender.com`
 
 2. **NEXT_PUBLIC_SUPABASE_URL**
    - Your Supabase project URL
@@ -47,7 +47,7 @@ When deploying to Vercel, you need to set the following environment variables in
 
 ### Quick Setup Checklist
 
-- [ ] Set `NEXT_PUBLIC_API_URL` to your Render backend URL
+- [ ] Set `NEXT_PUBLIC_API_URL` or `NEXT_PUBLIC_BACKEND_URL` to your Render backend URL (e.g. `https://ai-job-backend.onrender.com`)
 - [ ] Set `NEXT_PUBLIC_SUPABASE_URL` from Supabase dashboard
 - [ ] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` from Supabase dashboard
 - [ ] Set `AUTH_URL` to your Vercel production URL

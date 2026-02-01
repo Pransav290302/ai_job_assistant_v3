@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+const BACKEND =
+  process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "";
 
 type Tab = "scrape" | "analyze" | "answer";
 
@@ -118,7 +119,7 @@ export default function AssistantPage() {
     return (
       <div className="rounded-xl border border-primary-700 bg-primary-900/50 p-8 text-center">
         <p className="text-accent-300">
-          Backend URL not configured. Set <code className="bg-primary-800 px-1 rounded">NEXT_PUBLIC_BACKEND_URL</code> in your environment (e.g. your Render backend URL).
+          Backend URL not configured. Set <code className="bg-primary-800 px-1 rounded">NEXT_PUBLIC_BACKEND_URL</code> or <code className="bg-primary-800 px-1 rounded">NEXT_PUBLIC_API_URL</code> in Vercel → Project Settings → Environment Variables (e.g. your Render backend URL like <code className="bg-primary-800 px-1 rounded">https://ai-job-backend.onrender.com</code>). Redeploy after adding.
         </p>
       </div>
     );
