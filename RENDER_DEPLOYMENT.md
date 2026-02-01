@@ -1,6 +1,7 @@
 # Render Backend Deployment (Vercel Frontend Integration)
 
-> See [DEPLOYMENT.md](./DEPLOYMENT.md) for a full deployment checklist.
+> See [DEPLOYMENT.md](./DEPLOYMENT.md) for a full deployment checklist.  
+> **Demo / free tier?** See [FREE_TIER.md](./FREE_TIER.md) for lighter resource usage.
 
 This guide helps you fix **"Failed to fetch"** when your Vercel frontend calls your Render backend.
 
@@ -26,7 +27,8 @@ Set these in **Render Dashboard** → your web service → **Environment**:
 | `AUTH_SECRET_KEY` | random secret | Generate with `openssl rand -base64 32` or Node |
 | `USE_SELENIUM` | `false` | Render has no Chrome; use Playwright |
 | `USE_PLAYWRIGHT` | `true` | LinkedIn, Glassdoor (Chromium in build) |
-| `BROWSERLESS_URL` | *(optional)* | `wss://chrome.browserless.io?token=XXX` – 6 hrs free/month, different IPs |
+| `BROWSERLESS_URL` | *(optional)* | `wss://chrome.browserless.io?token=XXX` – 6 hrs free/month |
+| `SCRAPER_API_KEY` | *(optional)* | ScraperAPI key – 1000 free credits/mo, reliable LinkedIn/Glassdoor scraping |
 
 ### LinkedIn & Glassdoor on Render Free Tier
 
@@ -34,6 +36,7 @@ Set these in **Render Dashboard** → your web service → **Environment**:
 - Works for LinkedIn, Glassdoor, Indeed, Greenhouse.  
 - **USE_PLAYWRIGHT=true** – Default. No extra env var needed.  
 - **Browserless** – If blocked, add BROWSERLESS_URL (6 hrs free/month) for different IPs.
+- **ScraperAPI** – For production reliability, add SCRAPER_API_KEY (1000 free req/mo at scraperapi.com). Handles LinkedIn/Glassdoor without Playwright.
 
 ---
 
@@ -48,6 +51,23 @@ In **Vercel** → Project → **Settings** → **Environment Variables**:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anon key |
 
 Use your **actual** Render URL from the Render dashboard (e.g. `https://ai-job-backend-xxxx.onrender.com`).
+
+---
+
+## Production Readiness (Multi-User)
+
+The backend is configured for production on Render:
+
+| Feature | Implementation |
+|---------|----------------|
+| **Connection pooling** | Postgres pool_size=5, max_overflow=10, pool_pre_ping |
+| **Rate limiting** | 15/min per IP for scrape/analyze/generate; 20/min for extract |
+| **Async offload** | Blocking ops (scrape, LLM) run in thread pool; event loop stays responsive |
+| **Input limits** | Resume 50KB, job desc 100KB, question 2KB, URL 2KB |
+| **Health checks** | `/` and `/health` for Render/load balancer probes |
+| **Config validation** | Startup warning if AUTH_SECRET_KEY is default on Render |
+
+Auth routes (`/auth/*`) and health are exempt from rate limiting. Adjust limits via `api/limiter.py` if needed.
 
 ---
 

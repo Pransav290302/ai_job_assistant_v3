@@ -77,6 +77,7 @@ export default function AssistantPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [jobDescription, setJobDescription] = useState("");
   const [scrapeResult, setScrapeResult] = useState<Record<string, unknown> | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, unknown> | null>(null);
   const [answerResult, setAnswerResult] = useState<Record<string, unknown> | null>(null);
@@ -129,8 +130,9 @@ export default function AssistantPage() {
   }
 
   async function handleScrape() {
-    if (!jobUrl.trim()) {
-      setError("Please enter a job URL.");
+    const hasPaste = jobDescription.trim().length > 200;
+    if (!jobUrl.trim() && !hasPaste) {
+      setError("Enter a job URL or paste the job description below.");
       return;
     }
     setError(null);
@@ -140,11 +142,15 @@ export default function AssistantPage() {
       const res = await fetchWithTimeout(`${BACKEND}/api/job/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_url: jobUrl.trim() }),
+        body: JSON.stringify({
+          job_url: jobUrl.trim() || "https://pasted-job-description",
+          job_description: hasPaste ? jobDescription.trim() : undefined,
+        }),
       });
       const data = await parseJsonOrThrow(res, "Scraping failed");
       if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Scraping failed"));
       setScrapeResult(data);
+      if (data.text && typeof data.text === "string") setJobDescription(data.text);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scraping failed");
     } finally {
@@ -153,8 +159,9 @@ export default function AssistantPage() {
   }
 
   async function handleAnalyze() {
-    if (!jobUrl.trim() || !resumeText.trim()) {
-      setError("Please enter both job URL and resume text.");
+    const hasJob = jobUrl.trim() || jobDescription.trim().length > 200;
+    if (!hasJob || !resumeText.trim()) {
+      setError("Provide a job (URL or paste) and your resume.");
       return;
     }
     setError(null);
@@ -165,7 +172,8 @@ export default function AssistantPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_url: jobUrl.trim(),
+          job_url: jobUrl.trim() || undefined,
+          job_description: jobDescription.trim().length > 200 ? jobDescription.trim() : undefined,
           resume_text: resumeText.trim(),
         }),
       });
@@ -199,8 +207,9 @@ export default function AssistantPage() {
   }
 
   async function handleGenerateAnswer() {
-    if (!jobUrl.trim() || !question.trim()) {
-      setError("Please enter job URL and question.");
+    const hasJob = jobUrl.trim() || jobDescription.trim().length > 200;
+    if (!hasJob || !question.trim()) {
+      setError("Provide a job (URL or paste) and the application question.");
       return;
     }
     setError(null);
@@ -217,7 +226,8 @@ export default function AssistantPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_url: jobUrl.trim(),
+          job_url: jobUrl.trim() || undefined,
+          job_description: jobDescription.trim().length > 200 ? jobDescription.trim() : undefined,
           question: question.trim(),
           user_profile: profile,
         }),
@@ -283,6 +293,17 @@ export default function AssistantPage() {
 
         {tab === "scrape" && (
           <>
+            <div>
+              <span className="text-primary-200 font-medium">Or paste job description</span>
+              <p className="text-sm text-primary-400 mb-1">Use when scraping fails (e.g. LinkedIn blocks). Paste the full job posting text.</p>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste job description here (200+ chars)..."
+                rows={5}
+                className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
+              />
+            </div>
             <button
               onClick={handleScrape}
               disabled={loading}
@@ -380,7 +401,7 @@ export default function AssistantPage() {
           <p>{error}</p>
           {(error.includes("Scraping failed") || error.includes("Analysis failed") || error.includes("unreachable") || error.includes("timed out")) && (
             <p className="text-sm text-red-300/90">
-              Tip: Ensure <code className="bg-red-900/50 px-1 rounded">NEXT_PUBLIC_BACKEND_URL</code> is set in Vercel to your Render backend. If the backend just started, wait ~1 min (cold start) and try again. LinkedIn may block scrapers—try a different job URL if needed.
+              Tip: If scraping fails (e.g. LinkedIn blocks), paste the job description manually in the Scrape tab. Add <code className="bg-red-900/50 px-1 rounded">SCRAPER_API_KEY</code> on Render for reliable scraping (1000 free req/mo at scraperapi.com).
             </p>
           )}
         </div>

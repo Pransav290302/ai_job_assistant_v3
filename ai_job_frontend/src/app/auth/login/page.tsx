@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/_components/main/Logo";
 import { supabaseClient } from "@/_lib/supabaseClient";
+import { getAuthRedirectUrl } from "@/_lib/authRedirect";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,10 +47,9 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
-        // Dynamically sets the return path based on your current URL
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthRedirectUrl(),
        // Forces Google to show the account selection screen every time
         queryParams: {
           prompt: 'select_account',
@@ -65,10 +65,9 @@ export default function LoginPage() {
 
   const handleLinkedInLogin = async () => {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
-      // 1. Updated to match the OIDC setting in your screenshot
-      provider: 'linkedin_oidc', 
+      provider: "linkedin_oidc",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthRedirectUrl(),
         queryParams: {
           // 2. This enables the account selection screen for LinkedIn
           prompt: 'select_account', 

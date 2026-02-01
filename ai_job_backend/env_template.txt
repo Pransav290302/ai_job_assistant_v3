@@ -12,6 +12,8 @@ USE_STEALTH=true
 SELENIUM_HEADLESS=true
 # Optional: Browserless (6 hrs free/month) - different IPs for LinkedIn/Glassdoor
 # BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN
+# Optional: ScraperAPI - production-grade scraping, 1000 free credits/mo at scraperapi.com
+# SCRAPER_API_KEY=your_scraperapi_key_here
 
 # Logging Configuration
 LOG_LEVEL=INFO

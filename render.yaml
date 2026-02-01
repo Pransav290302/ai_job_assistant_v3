@@ -3,12 +3,17 @@ services:
     name: ai-job-backend
     env: python
     rootDir: ai_job_backend
-    buildCommand: pip install -r requirements.txt && playwright install chromium
+    # Skip Playwright (~150MB) when FREE_TIER=true: use paste + ScraperAPI only for demo
+    buildCommand: pip install -r requirements.txt && ( [ "$FREE_TIER" = "true" ] || playwright install chromium )
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
+      # Set FREE_TIER=true for demo to save RAM, skip Playwright, use paste/ScraperAPI
+      - key: FREE_TIER
+        value: "true"
       # Add PostgreSQL in Render Dashboard → Connect to this service (auto-injects DATABASE_URL)
       # Or set manually: key DATABASE_URL, value = postgresql://user:pass@host/db
       - key: DATABASE_URL
@@ -24,4 +29,7 @@ services:
         sync: false
       # Optional: Browserless (6 hrs free/month) - different IPs for LinkedIn/Glassdoor
       - key: BROWSERLESS_URL
+        sync: false
+      # Optional: ScraperAPI - production-grade job scraping, 1000 free credits/mo
+      - key: SCRAPER_API_KEY
         sync: false

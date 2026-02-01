@@ -36,7 +36,12 @@ class JobAssistantService:
             llm_api_key: API key (optional, reads from env if not provided)
             llm_base_url: Base URL for API (optional, uses OpenAI default if not provided)
         """
-        self.scraper = JobScraper(use_selenium=use_selenium, use_playwright=use_playwright)
+        scraper_api_key = os.getenv("SCRAPER_API_KEY")
+        self.scraper = JobScraper(
+            use_selenium=use_selenium,
+            use_playwright=use_playwright,
+            scraper_api_key=scraper_api_key,
+        )
         self.llm_model = llm_model or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         # Use provided API key or get from environment
         self.llm_api_key = llm_api_key or os.getenv("OPENAI_API_KEY")
@@ -49,32 +54,40 @@ class JobAssistantService:
                 "Please set it in your .env file: OPENAI_API_KEY=your_api_key_here"
             )
     
-    def analyze_resume(self, resume_text: str, job_url: str) -> Dict:
+    def analyze_resume(
+        self,
+        resume_text: str,
+        job_url: Optional[str] = None,
+        job_description: Optional[str] = None,
+    ) -> Dict:
         """
-        Complete workflow: scrape job description and analyze resume.
+        Complete workflow: use provided job description or scrape, then analyze.
         
         Args:
             resume_text: User's resume text
             job_url: URL of the job posting
+            job_description: Optional. If provided (e.g. pasted), skip scrape.
             
         Returns:
             Dictionary with analysis results
         """
-        logger.info(f"Starting resume analysis workflow for job: {job_url}")
+        logger.info(f"Starting resume analysis for job: {job_url or 'pasted'}")
         
-        # Step 1: Scrape job description
-        scrape_result = self.scraper.scrape(job_url)
-        
-        if not scrape_result['success']:
-            logger.error(f"Failed to scrape job description from {job_url}")
-            return {
-                'success': False,
-                'error': f"Failed to scrape job description: {scrape_result.get('error', 'Unknown error')}",
-                'job_url': job_url
-            }
-        
-        job_description = scrape_result['text']
-        logger.info(f"Successfully scraped job description ({len(job_description)} characters)")
+        # Step 1: Use provided job description or scrape
+        if job_description and len(job_description.strip()) > 200:
+            job_description = job_description.strip()
+            logger.info(f"Using provided job description ({len(job_description)} chars)")
+        else:
+            scrape_result = self.scraper.scrape(job_url)
+            if not scrape_result["success"]:
+                logger.error(f"Failed to scrape job description from {job_url}")
+                return {
+                    "success": False,
+                    "error": f"Failed to scrape: {scrape_result.get('error', 'Unknown error')}",
+                    "job_url": job_url,
+                }
+            job_description = scrape_result["text"]
+            logger.info(f"Scraped job description ({len(job_description)} chars)")
         
         # Step 2: Analyze resume against job description
         try:
@@ -120,34 +133,38 @@ class JobAssistantService:
                 'job_url': job_url
             }
     
-    def generate_answer(self, question: str, user_profile: Dict, job_url: str) -> Dict:
+    def generate_answer(
+        self,
+        question: str,
+        user_profile: Dict,
+        job_url: Optional[str] = None,
+        job_description: Optional[str] = None,
+    ) -> Dict:
         """
-        Complete workflow: scrape job description and generate tailored answer.
-        
-        Args:
-            question: Application question
-            user_profile: User profile dictionary
-            job_url: URL of the job posting
-            
-        Returns:
-            Dictionary with generated answer
+        Complete workflow: use provided job description or scrape, then generate answer.
         """
-        logger.info(f"Starting answer generation workflow for job: {job_url}")
-        
-        # Step 1: Scrape job description
-        scrape_result = self.scraper.scrape(job_url)
-        
-        if not scrape_result['success']:
-            logger.error(f"Failed to scrape job description from {job_url}")
-            return {
-                'success': False,
-                'error': f"Failed to scrape job description: {scrape_result.get('error', 'Unknown error')}",
-                'job_url': job_url
-            }
-        
-        job_description = scrape_result['text']
-        logger.info(f"Successfully scraped job description ({len(job_description)} characters)")
-        
+        logger.info(f"Starting answer generation for job: {job_url or 'pasted'}")
+
+        if job_description and len(job_description.strip()) > 200:
+            job_description = job_description.strip()
+            logger.info(f"Using provided job description ({len(job_description)} chars)")
+        else:
+            if not job_url:
+                return {
+                    "success": False,
+                    "error": "job_url required when job_description not provided",
+                    "job_url": "",
+                }
+            scrape_result = self.scraper.scrape(job_url)
+            if not scrape_result["success"]:
+                return {
+                    "success": False,
+                    "error": f"Failed to scrape: {scrape_result.get('error', 'Unknown error')}",
+                    "job_url": job_url,
+                }
+            job_description = scrape_result["text"]
+            logger.info(f"Scraped job description ({len(job_description)} chars)")
+
         # Step 2: Generate tailored answer
         try:
             answer = generate_tailored_answer(

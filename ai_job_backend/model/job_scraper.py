@@ -1,13 +1,15 @@
 """
-Robust Job Description Scraper
-Handles multiple job sites with intelligent content extraction.
+Production-grade Job Description Scraper
+Supports: ScraperAPI (recommended), Playwright, requests.
+Handles LinkedIn, Indeed, Greenhouse, Glassdoor, and generic sites.
 """
 
+import os
 import re
 import logging
 import asyncio
 from typing import Optional, Dict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -15,7 +17,7 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Optional Selenium imports - only import if available
+# Optional Selenium imports
 try:
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
@@ -27,18 +29,15 @@ try:
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
-    logger.warning("Selenium not available. Selenium-based scraping will be disabled.")
 
-# Optional Playwright imports - works on Render with: playwright install chromium
+# Optional Playwright - works on Render with: playwright install chromium
 try:
-    from playwright.sync_api import sync_playwright
     from playwright.async_api import async_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
-    logger.warning("Playwright not available. Playwright-based scraping will be disabled.")
 
-# Optional playwright-stealth - reduces headless detection (LinkedIn, Glassdoor)
+# Optional playwright-stealth
 try:
     from playwright_stealth import Stealth
     STEALTH_AVAILABLE = True
@@ -46,483 +45,389 @@ except ImportError:
     STEALTH_AVAILABLE = False
 
 
+# Login wall / blocked page indicators (LinkedIn, Glassdoor)
+LOGIN_WALL_PATTERNS = [
+    r"sign in to linkedin",
+    r"join linkedin",
+    r"join now",
+    r"log in to glassdoor",
+    r"create an account",
+    r"your session has expired",
+    r"please log in",
+    r"you must be logged in",
+    r"join to view",
+]
+
+
+def _is_login_wall(html: str) -> bool:
+    """Detect if page is a login/signup wall instead of job content."""
+    if not html or len(html) < 500:
+        return True
+    text = html.lower()[:8000]
+    for pat in LOGIN_WALL_PATTERNS:
+        if re.search(pat, text):
+            return True
+    return False
+
+
 class JobScraper:
     """
-    Professional job scraper that handles multiple job posting sites.
-    Uses intelligent content extraction to filter out navigation, ads, and footers.
+    Production job scraper with multiple providers.
+    Priority: ScraperAPI (if configured) > Playwright > requests.
     """
-    
-    # Site-specific selectors and patterns
+
     SITE_SELECTORS = {
-        'linkedin': {
-            'content_selectors': [
-                'div.description__text',
-                'div.show-more-less-html__markup',
-                'section.core-section-container',
-                'div[data-test-id="job-details"]'
+        "linkedin": {
+            "content_selectors": [
+                "div.description__text",
+                "div.show-more-less-html__markup",
+                "section.core-section-container__content",
+                "div[data-test-id='job-details']",
+                "div.jobs-box__html-content",
+                "div.job-view-layout",
+                "div.description",
+                "article",
             ],
-            'exclude_selectors': [
-                'nav', 'header', 'footer', '.ad', '.advertisement',
-                '.social-share', '.apply-button', '.job-actions'
-            ]
+            "exclude_selectors": [
+                "nav", "header", "footer", ".ad", ".advertisement",
+                ".social-share", "button", "a[href*='apply']",
+            ],
         },
-        'indeed': {
-            'content_selectors': [
-                'div#jobDescriptionText',
-                'div.jobsearch-jobDescriptionText',
-                'div.jobsearch-JobComponent-description'
+        "indeed": {
+            "content_selectors": [
+                "div#jobDescriptionText",
+                "div.jobsearch-jobDescriptionText",
+                "div.jobsearch-JobComponent-description",
+                "div.jobsearch-job-overview",
             ],
-            'exclude_selectors': [
-                'nav', 'header', 'footer', '.jobsearch-IndeedApplyButton',
-                '.jobsearch-SerpJobLink', '.jobsearch-CompanyReview'
-            ]
+            "exclude_selectors": [
+                "nav", "header", "footer", ".jobsearch-IndeedApplyButton",
+            ],
         },
-        'greenhouse': {
-            'content_selectors': [
-                'div#content',
-                'div.description',
-                'section.content'
+        "greenhouse": {
+            "content_selectors": [
+                "div#content",
+                "div#job_description",
+                "div.description",
+                "section.content",
             ],
-            'exclude_selectors': [
-                'nav', 'header', 'footer', '.application-form',
-                '.sidebar', '.company-info'
-            ]
+            "exclude_selectors": [
+                "nav", "header", "footer", ".application-form",
+            ],
         },
-        'glassdoor': {
-            'content_selectors': [
-                'div.jobDesc',
-                'div.jobDescriptionContent',
-                'div[data-test="jobDescriptionText"]'
+        "glassdoor": {
+            "content_selectors": [
+                "div.jobDesc",
+                "div.jobDescriptionContent",
+                "div[data-test='jobDescriptionText']",
+                "div.desc",
             ],
-            'exclude_selectors': [
-                'nav', 'header', 'footer', '.apply-button',
-                '.company-overview', '.salary-estimate'
-            ]
-        }
+            "exclude_selectors": [
+                "nav", "header", "footer", ".apply-button",
+            ],
+        },
     }
-    
-    # Sites that need JavaScript rendering (LinkedIn, Glassdoor, etc.)
+
     JS_SITES = ("linkedin", "glassdoor")
 
-    def __init__(self, use_selenium: bool = False, use_playwright: bool = False, headless: bool = True):
-        """
-        Initialize the job scraper.
-        
-        Args:
-            use_selenium: Whether to use Selenium for JavaScript-heavy sites
-            use_playwright: Whether to use Playwright (works on Render free tier with chromium)
-            headless: Run browser in headless mode
-        """
+    def __init__(
+        self,
+        use_selenium: bool = False,
+        use_playwright: bool = True,
+        headless: bool = True,
+        scraper_api_key: Optional[str] = None,
+    ):
         self.use_selenium = use_selenium and SELENIUM_AVAILABLE
         self.use_playwright = use_playwright and PLAYWRIGHT_AVAILABLE
         self.headless = headless
+        self.scraper_api_key = scraper_api_key
         self.driver = None
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
         })
         self.executor = ThreadPoolExecutor(max_workers=2)
-    
+
     def _detect_site(self, url: str) -> str:
-        """Detect which job site the URL belongs to."""
         domain = urlparse(url).netloc.lower()
-        
-        if 'linkedin.com' in domain:
-            return 'linkedin'
-        elif 'indeed.com' in domain:
-            return 'indeed'
-        elif 'greenhouse.io' in domain or 'boards.greenhouse.io' in domain:
-            return 'greenhouse'
-        elif 'glassdoor.com' in domain:
-            return 'glassdoor'
-        else:
-            return 'generic'
-    
-    def _setup_selenium(self):
-        """Initialize Selenium WebDriver if needed."""
-        if not SELENIUM_AVAILABLE:
-            raise ImportError("Selenium is not installed. Install with: pip install selenium webdriver-manager")
-        
-        if self.driver is None:
-            chrome_options = Options()
-            if self.headless:
-                chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            chrome_options.add_experimental_option('useAutomationExtension', False)
-            
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    
+        if "linkedin.com" in domain:
+            return "linkedin"
+        if "indeed.com" in domain:
+            return "indeed"
+        if "greenhouse.io" in domain or "boards.greenhouse.io" in domain:
+            return "greenhouse"
+        if "glassdoor.com" in domain:
+            return "glassdoor"
+        return "generic"
+
     def _clean_text(self, text: str) -> str:
-        """
-        Clean extracted text by removing extra whitespace and normalizing.
-        
-        Args:
-            text: Raw extracted text
-            
-        Returns:
-            Cleaned text string
-        """
         if not text:
             return ""
-        
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
-        # Remove leading/trailing whitespace
+        text = re.sub(r"\s+", " ", text)
         text = text.strip()
-        # Remove common noise patterns
-        text = re.sub(r'(?i)(apply now|save job|share job)', '', text)
-        
-        return text
-    
-    def _extract_with_selectors(self, soup: BeautifulSoup, selectors: list, exclude_selectors: list) -> str:
-        """
-        Extract job description using site-specific selectors.
-        
-        Args:
-            soup: BeautifulSoup object
-            selectors: List of CSS selectors to try
-            exclude_selectors: Selectors to exclude from results
-            
-        Returns:
-            Extracted text content
-        """
-        # Remove unwanted elements first
-        for exclude_sel in exclude_selectors:
-            for element in soup.select(exclude_sel):
-                element.decompose()
-        
-        # Try each selector until we find content
+        text = re.sub(r"(?i)(apply now|save job|share job|see more|see less)", "", text)
+        return text.strip()
+
+    def _extract_with_selectors(
+        self,
+        soup: BeautifulSoup,
+        selectors: list,
+        exclude_selectors: list,
+    ) -> str:
+        for sel in exclude_selectors:
+            for el in soup.select(sel):
+                el.decompose()
         for selector in selectors:
-            elements = soup.select(selector)
+            try:
+                elements = soup.select(selector)
+            except Exception:
+                continue
             if elements:
-                # Combine text from all matching elements
-                text_parts = []
-                for elem in elements:
-                    text = elem.get_text(separator=' ', strip=True)
-                    if text and len(text) > 100:  # Filter out short snippets
-                        text_parts.append(text)
-                
-                if text_parts:
-                    combined = ' '.join(text_parts)
-                    return self._clean_text(combined)
-        
+                parts = []
+                for el in elements:
+                    t = el.get_text(separator=" ", strip=True)
+                    if t and len(t) > 80:
+                        parts.append(t)
+                if parts:
+                    return self._clean_text(" ".join(parts))
         return ""
-    
+
     def _extract_generic(self, soup: BeautifulSoup) -> str:
-        """
-        Generic extraction method for unknown sites.
-        Uses heuristics to find main content.
-        
-        Args:
-            soup: BeautifulSoup object
-            
-        Returns:
-            Extracted text content
-        """
-        # Remove common noise elements
-        for selector in ['nav', 'header', 'footer', '.ad', '.advertisement', 
-                        '.sidebar', '.menu', '.navigation', 'script', 'style']:
-            for elem in soup.select(selector):
-                elem.decompose()
-        
-        # Look for main content areas
-        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|description|job', re.I))
-        
-        if main_content:
-            text = main_content.get_text(separator=' ', strip=True)
-            return self._clean_text(text)
-        
-        # Fallback: get body text but filter out very short paragraphs
-        body = soup.find('body')
+        for sel in ["nav", "header", "footer", ".ad", "script", "style"]:
+            for el in soup.select(sel):
+                el.decompose()
+        main = soup.find("main") or soup.find("article") or soup.find(
+            "div", class_=re.compile(r"content|description|job", re.I)
+        )
+        if main:
+            return self._clean_text(main.get_text(separator=" ", strip=True))
+        body = soup.find("body")
         if body:
-            paragraphs = body.find_all(['p', 'div', 'section'])
-            text_parts = []
-            for p in paragraphs:
-                text = p.get_text(separator=' ', strip=True)
-                if len(text) > 50:  # Only include substantial paragraphs
-                    text_parts.append(text)
-            
-            if text_parts:
-                return self._clean_text(' '.join(text_parts))
-        
+            parts = []
+            for p in body.find_all(["p", "div", "section"]):
+                t = p.get_text(separator=" ", strip=True)
+                if len(t) > 50:
+                    parts.append(t)
+            if parts:
+                return self._clean_text(" ".join(parts))
         return ""
-    
-    def _scrape_with_requests(self, url: str) -> Optional[str]:
-        """
-        Scrape using requests library (faster, but doesn't handle JavaScript).
-        
-        Args:
-            url: Job posting URL
-            
-        Returns:
-            Extracted job description text or None
-        """
-        try:
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
-            
-            # Try lxml parser first, fallback to html.parser
-            try:
-                soup = BeautifulSoup(response.content, 'lxml')
-            except:
-                soup = BeautifulSoup(response.content, 'html.parser')
-            
-            site = self._detect_site(url)
-            
-            if site in self.SITE_SELECTORS:
-                config = self.SITE_SELECTORS[site]
-                text = self._extract_with_selectors(
-                    soup, 
-                    config['content_selectors'],
-                    config['exclude_selectors']
-                )
-                if text:
-                    return text
-            
-            # Fallback to generic extraction
-            return self._extract_generic(soup)
-            
-        except Exception as e:
-            logger.error(f"Error scraping with requests: {str(e)}")
+
+    def _parse_html(self, html: str, url: str) -> Optional[str]:
+        if _is_login_wall(html):
+            logger.warning("Login wall detected - page requires authentication")
             return None
-    
-    def _scrape_with_selenium(self, url: str) -> Optional[str]:
-        """
-        Scrape using Selenium (handles JavaScript-rendered content).
-        
-        Args:
-            url: Job posting URL
-            
-        Returns:
-            Extracted job description text or None
-        """
-        if not SELENIUM_AVAILABLE:
-            logger.warning("Selenium not available, skipping Selenium-based scraping")
-            return None
-            
         try:
-            self._setup_selenium()
-            self.driver.get(url)
-            
-            # Wait for content to load
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            soup = BeautifulSoup(html, "lxml")
+        except Exception:
+            soup = BeautifulSoup(html, "html.parser")
+        site = self._detect_site(url)
+        if site in self.SITE_SELECTORS:
+            cfg = self.SITE_SELECTORS[site]
+            text = self._extract_with_selectors(
+                soup, cfg["content_selectors"], cfg["exclude_selectors"]
             )
-            
-            # Additional wait for dynamic content
-            import time
-            time.sleep(2)
-            
-            html = self.driver.page_source
-            # Try lxml parser first, fallback to html.parser
-            try:
-                soup = BeautifulSoup(html, 'lxml')
-            except:
-                soup = BeautifulSoup(html, 'html.parser')
-            
-            site = self._detect_site(url)
-            
-            if site in self.SITE_SELECTORS:
-                config = self.SITE_SELECTORS[site]
-                text = self._extract_with_selectors(
-                    soup,
-                    config['content_selectors'],
-                    config['exclude_selectors']
-                )
-                if text:
-                    return text
-            
-            # Fallback to generic extraction
-            return self._extract_generic(soup)
-            
-        except Exception as e:
-            logger.error(f"Error scraping with Selenium: {str(e)}")
+            if text:
+                return text
+        return self._extract_generic(soup) or None
+
+    def _scrape_with_scraper_api(self, url: str) -> Optional[str]:
+        """ScraperAPI - production-grade, handles LinkedIn/Glassdoor."""
+        if not self.scraper_api_key:
             return None
+        try:
+            api_url = (
+                "http://api.scraperapi.com"
+                f"?api_key={self.scraper_api_key}"
+                f"&url={quote(url, safe='')}"
+                "&render=true"  # JS rendering for LinkedIn
+            )
+            r = self.session.get(api_url, timeout=60)
+            r.raise_for_status()
+            text = self._parse_html(r.text, url)
+            if text and len(text) > 200:
+                logger.info(f"ScraperAPI: extracted {len(text)} chars")
+                return text
+        except Exception as e:
+            logger.warning(f"ScraperAPI error: {e}")
+        return None
+
+    def _scrape_with_requests(self, url: str) -> Optional[str]:
+        try:
+            r = self.session.get(url, timeout=15)
+            r.raise_for_status()
+            text = self._parse_html(r.text, url)
+            if text and len(text) > 200:
+                return text
+        except Exception as e:
+            logger.debug(f"Requests scrape failed: {e}")
+        return None
 
     def _scrape_with_playwright(self, url: str) -> Optional[str]:
-        """
-        Scrape using Playwright with stealth (LinkedIn, Glassdoor on Render free tier).
-        Supports Browserless (6 hrs free/month) for different IPs.
-        """
         if not PLAYWRIGHT_AVAILABLE:
             return None
         try:
-            html = asyncio.run(self._scrape_playwright_async(url))
-            if not html:
-                return None
-            try:
-                soup = BeautifulSoup(html, "lxml")
-            except Exception:
-                soup = BeautifulSoup(html, "html.parser")
-            site = self._detect_site(url)
-            if site in self.SITE_SELECTORS:
-                config = self.SITE_SELECTORS[site]
-                text = self._extract_with_selectors(
-                    soup, config["content_selectors"], config["exclude_selectors"]
-                )
-                if text:
-                    return text
-            return self._extract_generic(soup)
+            html = asyncio.run(self._playwright_async(url))
+            if html:
+                return self._parse_html(html, url)
         except Exception as e:
-            logger.error(f"Error scraping with Playwright: {str(e)}")
-            return None
+            logger.warning(f"Playwright scrape failed: {e}")
+        return None
 
-    async def _scrape_playwright_async(self, url: str) -> Optional[str]:
-        """Async Playwright scrape with stealth + optional Browserless."""
+    async def _playwright_async(self, url: str) -> Optional[str]:
         from model.utils.config import get_config
         config = get_config()
         browserless_url = config.BROWSERLESS_URL
-        use_stealth = config.USE_STEALTH and STEALTH_AVAILABLE
+        use_stealth = getattr(config, "USE_STEALTH", True) and STEALTH_AVAILABLE
 
-        launch_args = {
-            "headless": self.headless,
-            "args": [
-                "--disable-blink-features=AutomationControlled",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-infobars",
-                "--window-size=1920,1080",
-            ],
-        }
+        launch = {"headless": self.headless, "args": [
+            "--no-sandbox", "--disable-dev-shm-usage",
+            "--disable-blink-features=AutomationControlled",
+        ]}
 
         async with async_playwright() as p:
             if browserless_url:
                 browser = await p.chromium.connect_over_cdp(browserless_url)
-                logger.info("Using Browserless (remote browser)")
             else:
-                browser = await p.chromium.launch(**launch_args)
-
-            context = await browser.new_context(
+                browser = await p.chromium.launch(**launch)
+            ctx = await browser.new_context(
                 viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                 locale="en-US",
-                extra_http_headers={"Accept-Language": "en-US,en;q=0.9"},
             )
             if use_stealth and STEALTH_AVAILABLE:
-                await Stealth().apply_stealth_async(context)
-
-            page = await context.new_page()
-            await page.goto(url, wait_until="domcontentloaded", timeout=45000)
-            await asyncio.sleep(3)  # Allow dynamic content (LinkedIn/Glassdoor)
+                await Stealth().apply_stealth_async(ctx)
+            page = await ctx.new_page()
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3)
             html = await page.content()
             await browser.close()
         return html
 
-    def scrape(self, url: str, force_selenium: bool = False, force_playwright: bool = False) -> Dict[str, any]:
+    def _scrape_with_selenium(self, url: str) -> Optional[str]:
+        if not SELENIUM_AVAILABLE:
+            return None
+        try:
+            self._setup_selenium()
+            self.driver.get(url)
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            import time
+            time.sleep(3)
+            html = self.driver.page_source
+            return self._parse_html(html, url)
+        except Exception as e:
+            logger.warning(f"Selenium scrape failed: {e}")
+            return None
+
+    def _setup_selenium(self):
+        if self.driver is None and SELENIUM_AVAILABLE:
+            opts = Options()
+            if self.headless:
+                opts.add_argument("--headless")
+            opts.add_argument("--no-sandbox")
+            opts.add_argument("--disable-dev-shm-usage")
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=opts)
+
+    def scrape(
+        self,
+        url: str,
+        force_playwright: bool = False,
+    ) -> Dict:
         """
-        Main scraping method. Order: requests → Playwright → Selenium.
-        Playwright works on Render free tier (add 'playwright install chromium' to build).
+        Scrape job description. Priority:
+        1. ScraperAPI (if key set) for LinkedIn/Glassdoor
+        2. requests for Indeed/Greenhouse
+        3. Playwright for JS sites
         """
-        logger.info(f"Scraping job description from: {url}")
+        logger.info(f"Scraping: {url}")
         site = self._detect_site(url)
         needs_js = site in self.JS_SITES
 
-        # For LinkedIn/Glassdoor: Playwright first (requests usually returns login wall)
-        if needs_js and (self.use_playwright or force_playwright):
-            text = self._scrape_with_playwright(url)
-            if text and len(text) > 200:
-                logger.info(f"Scraped {len(text)} chars using Playwright")
-                return {"success": True, "text": text, "method": "playwright", "url": url}
+        # ScraperAPI first for protected sites or when explicitly preferred
+        if self.scraper_api_key and (needs_js or force_playwright):
+            text = self._scrape_with_scraper_api(url)
+            if text:
+                return {"success": True, "text": text, "method": "scraperapi", "url": url}
 
-        # For other sites: try requests first (faster)
-        if not force_playwright and not force_selenium:
+        # Indeed/Greenhouse: requests usually works
+        if not needs_js:
             text = self._scrape_with_requests(url)
-            if text and len(text) > 200:
-                logger.info(f"Scraped {len(text)} chars using requests")
+            if text:
                 return {"success": True, "text": text, "method": "requests", "url": url}
 
-        # Playwright for JS sites we missed, or as fallback
-        if self.use_playwright or force_playwright:
+        # Playwright for LinkedIn/Glassdoor
+        if self.use_playwright:
             text = self._scrape_with_playwright(url)
-            if text and len(text) > 200:
+            if text:
                 return {"success": True, "text": text, "method": "playwright", "url": url}
 
-        # Selenium fallback (needs Chrome - not on Render default)
-        if self.use_selenium or force_selenium:
-            text = self._scrape_with_selenium(url)
-            if text and len(text) > 200:
-                return {"success": True, "text": text, "method": "selenium", "url": url}
+        # Try ScraperAPI for any site if configured
+        if self.scraper_api_key:
+            text = self._scrape_with_scraper_api(url)
+            if text:
+                return {"success": True, "text": text, "method": "scraperapi", "url": url}
 
-        logger.warning(f"Failed to extract meaningful content from {url}")
+        # Last resort: requests for JS sites (often login wall)
+        text = self._scrape_with_requests(url)
+        if text:
+            return {"success": True, "text": text, "method": "requests", "url": url}
+
         return {
-            'success': False,
-            'text': None,
-            'error': 'Could not extract job description content',
-            'url': url
+            "success": False,
+            "text": None,
+            "error": (
+                "Could not extract job description. LinkedIn and Glassdoor often block scrapers. "
+                "Try: 1) Paste the job description manually, or 2) Add SCRAPER_API_KEY for reliable scraping (free tier: 1000 req/mo)."
+            ),
+            "url": url,
         }
-    
-    async def scrape_async(self, url: str, force_selenium: bool = False) -> Dict[str, any]:
-        """
-        Async version of scrape method for use in async routes.
-        
-        Args:
-            url: Job posting URL
-            force_selenium: Force use of Selenium even if not configured
-            
-        Returns:
-            Dictionary with 'success', 'text', and 'error' keys
-        """
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self.executor, self.scrape, url, force_selenium)
-    
+
     def close(self):
-        """Clean up resources."""
         if self.driver:
             self.driver.quit()
             self.driver = None
         self.session.close()
-        if hasattr(self, 'executor'):
+        if hasattr(self, "executor"):
             self.executor.shutdown(wait=False)
-    
-    def __enter__(self):
-        """Context manager entry."""
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.close()
 
 
-def scrape_job_description(url: str, use_selenium: bool = False, use_playwright: bool = True) -> str:
-    """
-    Convenience function for simple scraping use cases.
-    
-    Args:
-        url: Job posting URL
-        use_selenium: Whether to use Selenium for JavaScript-heavy sites
-        use_playwright: Whether to use Playwright (works on Render; default True)
-        
-    Returns:
-        Extracted job description text
-        
-    Raises:
-        ValueError: If scraping fails
-    """
-    with JobScraper(use_selenium=use_selenium, use_playwright=use_playwright) as scraper:
-        result = scraper.scrape(url)
-        
-        if result['success']:
-            return result['text']
-        else:
-            raise ValueError(f"Failed to scrape job description: {result.get('error', 'Unknown error')}")
+async def scrape_job_description_async(
+    url: str,
+    use_selenium: bool = False,
+    use_playwright: bool = True,
+    scraper_api_key: Optional[str] = None,
+) -> str:
+    """Async version. Raises ValueError on failure."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None,
+        lambda: scrape_job_description(
+            url, use_selenium, use_playwright, scraper_api_key
+        ),
+    )
 
 
-async def scrape_job_description_async(url: str, use_selenium: bool = False, use_playwright: bool = True) -> str:
-    """
-    Async convenience function for scraping in async routes.
-    """
-    scraper = JobScraper(use_selenium=use_selenium, use_playwright=use_playwright)
+def scrape_job_description(
+    url: str,
+    use_selenium: bool = False,
+    use_playwright: bool = True,
+    scraper_api_key: Optional[str] = None,
+) -> str:
+    """Convenience function. Raises ValueError on failure."""
+    key = scraper_api_key or os.getenv("SCRAPER_API_KEY")
+    scraper = JobScraper(
+        use_selenium=use_selenium,
+        use_playwright=use_playwright,
+        scraper_api_key=key,
+    )
     try:
-        result = await scraper.scrape_async(url)
-        if result['success']:
-            return result['text']
-        else:
-            raise ValueError(f"Failed to scrape job description: {result.get('error', 'Unknown error')}")
+        result = scraper.scrape(url)
+        if result["success"]:
+            return result["text"]
+        raise ValueError(result.get("error", "Scraping failed"))
     finally:
         scraper.close()

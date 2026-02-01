@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/_components/main/Logo";
 import { registerUserAction } from "@/_lib/actions";
 import { supabaseClient } from "@/_lib/supabaseClient";
+import { getAuthRedirectUrl } from "@/_lib/authRedirect";
 
 export default function AuthPage() {
   const [firstName, setFirstName] = useState("");
@@ -18,7 +19,7 @@ export default function AuthPage() {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthRedirectUrl(),
         queryParams: {
           prompt: "select_account",
           access_type: "offline",
@@ -33,7 +34,7 @@ export default function AuthPage() {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "linkedin_oidc",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthRedirectUrl(),
       },
     });
 

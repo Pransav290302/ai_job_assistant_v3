@@ -6,8 +6,11 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from api import models
+from api.limiter import limiter
 from api.database import engine
 from api.routes import auth, jobs, health, model
 
@@ -15,11 +18,13 @@ from api.routes import auth, jobs, health, model
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-# Load environment variables
 load_dotenv()
 APP_PORT = int(os.getenv("PORT", 8000))
 
 app = FastAPI(title="AI Job Application Assistant")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.include_router(auth.router)
 app.include_router(jobs.router)
 app.include_router(health.router)
@@ -43,6 +48,19 @@ app.add_middleware(
 
 # Initialize Database tables
 models.Base.metadata.create_all(bind=engine)
+
+
+@app.on_event("startup")
+def startup_checks():
+    """Production config validation - fail fast on misconfiguration."""
+    if os.getenv("RENDER"):
+        secret = os.getenv("AUTH_SECRET_KEY", "")
+        if not secret or secret == "change-me-in-prod":
+            import logging
+            logging.getLogger("uvicorn.error").warning(
+                "AUTH_SECRET_KEY not set or using default. Set it in Render Dashboard."
+            )
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=APP_PORT, reload=True)

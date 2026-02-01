@@ -1,4 +1,4 @@
 {
   "framework": "nextjs",
-  "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm run build"
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=2048 npm run build"
 }

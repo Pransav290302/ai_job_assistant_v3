@@ -1,5 +1,7 @@
 # Deployment Guide – Render (Backend) + Vercel (Frontend)
 
+> **Full step-by-step guide:** See [FULL_DEPLOYMENT.md](./FULL_DEPLOYMENT.md)
+
 ## Project Structure
 
 - `ai_job_backend/` → Deploy to **Render**

@@ -3,13 +3,17 @@ Data Science API Routes
 FastAPI routes for resume analysis, answer generation, and job scraping.
 """
 
+import asyncio
 import logging
 import os
-from typing import Dict, Optional
-from pydantic import BaseModel, HttpUrl
+from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Optional  # noqa: F401 - Optional used in BaseModel
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field, HttpUrl
+
+from api.limiter import limiter
 from model.api_integration import (
     analyze_resume_endpoint,
     extract_resume_profile_endpoint,
@@ -25,24 +29,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["model"])
 
 
-# Request/Response Models
+# 1 worker for free tier (demo) to save RAM; 2 for paid
+_free_tier = os.getenv("FREE_TIER", "false").lower() == "true"
+_executor = ThreadPoolExecutor(
+    max_workers=1 if _free_tier else 2,
+    thread_name_prefix="api",
+)
+
+# Request/Response Models - field constraints for production (prevent abuse)
+MAX_RESUME_LEN = 50_000
+MAX_JOB_DESC_LEN = 100_000
+MAX_QUESTION_LEN = 2_000
+MAX_URL_LEN = 2_048
+
+
 class ResumeAnalysisRequest(BaseModel):
-    resume_text: str
-    job_url: str
+    resume_text: str = Field(..., max_length=MAX_RESUME_LEN)
+    job_url: Optional[str] = Field(None, max_length=MAX_URL_LEN)
+    job_description: Optional[str] = Field(None, max_length=MAX_JOB_DESC_LEN)
 
 
 class GenerateAnswerRequest(BaseModel):
-    question: str
+    question: str = Field(..., max_length=MAX_QUESTION_LEN)
     user_profile: Dict
-    job_url: str
+    job_url: Optional[str] = Field(None, max_length=MAX_URL_LEN)
+    job_description: Optional[str] = Field(None, max_length=MAX_JOB_DESC_LEN)
 
 
 class ScrapeJobRequest(BaseModel):
-    job_url: str
+    job_url: Optional[str] = Field(None, max_length=MAX_URL_LEN)
+    job_description: Optional[str] = Field(None, max_length=MAX_JOB_DESC_LEN)
 
 
 class ExtractResumeRequest(BaseModel):
-    resume_text: str
+    resume_text: str = Field(..., max_length=MAX_RESUME_LEN)
 
 
 class StatusResponse(BaseModel):
@@ -54,7 +74,8 @@ class StatusResponse(BaseModel):
 
 
 @router.post("/resume/analyze")
-async def analyze_resume(request: ResumeAnalysisRequest) -> Dict:
+@limiter.limit("15/minute")
+async def analyze_resume(req: Request, request: ResumeAnalysisRequest) -> Dict:
     """
     POST /api/resume/analyze
     Analyzes a resume against a job description.
@@ -66,12 +87,19 @@ async def analyze_resume(request: ResumeAnalysisRequest) -> Dict:
     }
     """
     try:
-        logger.info(f"Resume analysis request for job: {request.job_url}")
-        result = analyze_resume_endpoint(
-            resume_text=request.resume_text,
-            job_url=request.job_url
+        if not request.job_description and not request.job_url:
+            raise HTTPException(status_code=400, detail="Provide job_url or job_description")
+        logger.info(f"Resume analysis request for job: {request.job_url or 'pasted'}")
+        loop = asyncio.get_event_loop()
+        r = request
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: analyze_resume_endpoint(
+                resume_text=r.resume_text,
+                job_url=r.job_url,
+                job_description=r.job_description,
+            ),
         )
-        
         if not result.get('success'):
             raise HTTPException(status_code=500, detail=result.get('error', 'Analysis failed'))
         
@@ -85,7 +113,8 @@ async def analyze_resume(request: ResumeAnalysisRequest) -> Dict:
 
 
 @router.post("/generate/answer")
-async def generate_answer(request: GenerateAnswerRequest) -> Dict:
+@limiter.limit("15/minute")
+async def generate_answer(req: Request, request: GenerateAnswerRequest) -> Dict:
     """
     POST /api/generate/answer
     Generates a tailored answer to an application question.
@@ -103,13 +132,20 @@ async def generate_answer(request: GenerateAnswerRequest) -> Dict:
     }
     """
     try:
-        logger.info(f"Answer generation request for job: {request.job_url}")
-        result = generate_answer_endpoint(
-            question=request.question,
-            user_profile=request.user_profile,
-            job_url=request.job_url
+        if not request.job_description and not request.job_url:
+            raise HTTPException(status_code=400, detail="Provide job_url or job_description")
+        logger.info(f"Answer generation request for job: {request.job_url or 'pasted'}")
+        loop = asyncio.get_event_loop()
+        r = request
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: generate_answer_endpoint(
+                question=r.question,
+                user_profile=r.user_profile,
+                job_url=r.job_url,
+                job_description=r.job_description,
+            ),
         )
-        
         if not result.get('success'):
             raise HTTPException(status_code=500, detail=result.get('error', 'Answer generation failed'))
         
@@ -123,7 +159,8 @@ async def generate_answer(request: GenerateAnswerRequest) -> Dict:
 
 
 @router.post("/resume/extract")
-async def extract_resume_profile(request: ExtractResumeRequest) -> Dict:
+@limiter.limit("20/minute")
+async def extract_resume_profile(req: Request, request: ExtractResumeRequest) -> Dict:
     """
     POST /api/resume/extract
     Extracts work_history, skills, education from resume text using AI.
@@ -141,7 +178,8 @@ async def extract_resume_profile(request: ExtractResumeRequest) -> Dict:
 
 
 @router.post("/job/scrape")
-async def scrape_job(request: ScrapeJobRequest) -> Dict:
+@limiter.limit("15/minute")
+async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
     """
     POST /api/job/scrape
     Scrapes a job description from a URL.
@@ -152,9 +190,19 @@ async def scrape_job(request: ScrapeJobRequest) -> Dict:
     }
     """
     try:
-        logger.info(f"Job scraping request for: {request.job_url}")
-        result = scrape_job_description_endpoint(request.job_url)
-        
+        if not request.job_url and not (request.job_description and len((request.job_description or "").strip()) > 200):
+            raise HTTPException(status_code=400, detail="Provide job_url or job_description (200+ chars)")
+        logger.info(f"Job scraping request for: {request.job_url or 'pasted'}")
+        job_url = request.job_url or "https://pasted-job-description"
+        job_desc = request.job_description
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: scrape_job_description_endpoint(
+                job_url=job_url,
+                job_description=job_desc,
+            ),
+        )
         if not result.get('success'):
             raise HTTPException(status_code=500, detail=result.get('error', 'Scraping failed'))
         
@@ -168,6 +216,7 @@ async def scrape_job(request: ScrapeJobRequest) -> Dict:
 
 
 @router.get("/status", response_model=StatusResponse)
+@limiter.exempt
 async def get_status() -> StatusResponse:
     """
     GET /api/status

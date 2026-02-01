@@ -49,7 +49,11 @@ def get_service() -> JobAssistantService:
     return _service_instance
 
 
-def analyze_resume_endpoint(resume_text: str, job_url: str) -> Dict:
+def analyze_resume_endpoint(
+    resume_text: str,
+    job_url: Optional[str] = None,
+    job_description: Optional[str] = None,
+) -> Dict:
     """
     API endpoint function for resume analysis.
     This function can be called directly from FastAPI routes.
@@ -74,7 +78,11 @@ def analyze_resume_endpoint(resume_text: str, job_url: str) -> Dict:
     
     try:
         service = get_service()
-        result = service.analyze_resume(resume_text, job_url)
+        result = service.analyze_resume(
+            resume_text=resume_text,
+            job_url=job_url,
+            job_description=job_description,
+        )
         return result
     except Exception as e:
         logger.error(f"Error in analyze_resume_endpoint: {str(e)}")
@@ -84,7 +92,12 @@ def analyze_resume_endpoint(resume_text: str, job_url: str) -> Dict:
         }
 
 
-def generate_answer_endpoint(question: str, user_profile: Dict, job_url: str) -> Dict:
+def generate_answer_endpoint(
+    question: str,
+    user_profile: Dict,
+    job_url: Optional[str] = None,
+    job_description: Optional[str] = None,
+) -> Dict:
     """
     API endpoint function for generating tailored answers.
     This function can be called directly from FastAPI routes.
@@ -111,7 +124,12 @@ def generate_answer_endpoint(question: str, user_profile: Dict, job_url: str) ->
     
     try:
         service = get_service()
-        result = service.generate_answer(question, user_profile, job_url)
+        result = service.generate_answer(
+            question=question,
+            user_profile=user_profile,
+            job_url=job_url,
+            job_description=job_description,
+        )
         return result
     except Exception as e:
         logger.error(f"Error in generate_answer_endpoint: {str(e)}")
@@ -132,7 +150,10 @@ def extract_resume_profile_endpoint(resume_text: str) -> Dict:
         return {"success": False, "error": str(e)}
 
 
-def scrape_job_description_endpoint(job_url: str) -> Dict:
+def scrape_job_description_endpoint(
+    job_url: str,
+    job_description: Optional[str] = None,
+) -> Dict:
     """
     API endpoint function for scraping job descriptions.
     This function can be called directly from FastAPI routes.
@@ -152,11 +173,20 @@ def scrape_job_description_endpoint(job_url: str) -> Dict:
     logger.info(f"Scrape job description endpoint called for: {job_url}")
     
     try:
+        # Use provided job description (e.g. from paste) - skip scrape
+        if job_description and len(job_description.strip()) > 200:
+            return {
+                "success": True,
+                "text": job_description.strip(),
+                "url": job_url,
+                "source": "provided",
+            }
         config = get_config()
         text = scrape_job_description(
             job_url,
             use_selenium=config.USE_SELENIUM,
             use_playwright=config.USE_PLAYWRIGHT,
+            scraper_api_key=config.SCRAPER_API_KEY,
         )
         return {
             'success': True,

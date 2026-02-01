@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 from sqlalchemy.orm import Session
 
+from api.limiter import limiter
 from api.dependencies import (
     ALGORITHM,
     SECRET_KEY,
@@ -38,6 +39,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 
 @router.post("/register", status_code=201)
+@limiter.exempt
 def register_user(payload: UserCreate, db: db_dependency):
 
     existing = db.query(models.User).filter(models.User.email == payload.email).first()
@@ -57,6 +59,7 @@ def register_user(payload: UserCreate, db: db_dependency):
 
 
 @router.post("/token", response_model=Token)
+@limiter.exempt
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: db_dependency,

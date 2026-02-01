@@ -11,14 +11,24 @@ const splitName = (fullName: string | null | undefined) => {
   };
 };
 
+/** Resolve redirect base URL - handles Vercel/proxy (x-forwarded-host). */
+function getRedirectBase(request: Request, origin: string): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const isLocal = process.env.NODE_ENV === "development";
+  if (isLocal || !forwardedHost) return origin;
+  const proto = request.headers.get("x-forwarded-proto") || "https";
+  return `${proto}://${forwardedHost}`;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get('code');
+  const code = searchParams.get("code");
+  const base = getRedirectBase(request, origin);
 
   if (code) {
-    const supabase = await createClient(); // שימוש ב-Server Client
+    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    
+
     if (!error) {
       // Fetch the authenticated user from the session cookies
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -49,12 +59,12 @@ export async function GET(request: Request) {
         console.error("Auth callback user fetch error:", userError.message);
       }
 
-      // Session is established; hit home and let middleware route to dashboard or preferences
-      return NextResponse.redirect(`${origin}/`);
+      // Session is established; redirect to home (middleware routes to dashboard/preferences)
+      return NextResponse.redirect(`${base}/`);
     }
-    
+
     console.error("Auth error:", error.message);
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`);
+  return NextResponse.redirect(`${base}/auth/login?error=auth_callback_failed`);
 }
