@@ -20,6 +20,8 @@ API_TIMEOUT=30
 PORT=8000
 HOST=0.0.0.0
 FRONTEND_URL=http://localhost:3000
+# For Vercel: set ALLOWED_ORIGINS to your Vercel URL(s), comma-separated for multiple (e.g. production + preview)
+# ALLOWED_ORIGINS=https://your-app.vercel.app,https://your-app-git-xxx.vercel.app
 
 # Database Configuration
 # Choose one: SQLite (easier) or PostgreSQL (production-ready)

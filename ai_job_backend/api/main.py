@@ -25,11 +25,13 @@ app.include_router(jobs.router)
 app.include_router(health.router)
 app.include_router(datascientist.router)
 
-# Configure CORS - Verified for Vercel/Localhost
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Configure CORS – localhost + Vercel production and preview URLs
+_frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+_allowed = os.getenv("ALLOWED_ORIGINS", _frontend_url)
+allow_origins = [o.strip() for o in _allowed.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
