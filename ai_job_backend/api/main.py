@@ -25,16 +25,20 @@ app.include_router(jobs.router)
 app.include_router(health.router)
 app.include_router(model.router)
 
-# Configure CORS – localhost + Vercel production and preview URLs
+# Configure CORS – allow Vercel (*.vercel.app) + explicit origins from env
 _frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 _allowed = os.getenv("ALLOWED_ORIGINS", _frontend_url)
 allow_origins = [o.strip() for o in _allowed.split(",") if o.strip()]
+# Regex: any *.vercel.app (production + preview deployments)
+_vercel_regex = r"^https://[a-zA-Z0-9][a-zA-Z0-9-]*\.vercel\.app$"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
+    allow_origin_regex=_vercel_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Initialize Database tables

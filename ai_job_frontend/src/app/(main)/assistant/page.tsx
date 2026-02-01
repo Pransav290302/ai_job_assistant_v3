@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 
+// Use proxy to avoid CORS - same-origin /api/backend/* forwards to Render
 const BACKEND =
-  process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "";
+  typeof window !== "undefined"
+    ? "/api/backend"
+    : process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "";
 
 // Render free tier cold-starts in ~50–90s; use long timeout
 const FETCH_TIMEOUT_MS = 90000;
