@@ -4,6 +4,10 @@
 
 If your repo has both `ai_job_backend` and `ai_job_frontend`, set **Root Directory** to `ai_job_frontend` in Vercel → Project Settings → General.
 
+## Build Configuration
+
+The project uses Webpack (instead of Turbopack) and an increased memory limit to avoid "JS heap out of memory" on Vercel. This is configured in `vercel.json` and `package.json`.
+
 ## Environment Variables Setup
 
 When deploying to Vercel, you need to set the following environment variables in your Vercel project settings:
