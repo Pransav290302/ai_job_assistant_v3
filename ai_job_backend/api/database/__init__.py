@@ -36,9 +36,9 @@ else:
     SQLALCHEMY_DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 # Engine and session factory
-# For SQLite, add connect_args to handle foreign keys
+# Only SQLite accepts check_same_thread; do not pass it for PostgreSQL
 connect_args = {}
-if use_sqlite:
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
