@@ -36,6 +36,31 @@ async function fetchWithTimeout(
   }
 }
 
+async function parseJsonOrThrow(
+  res: Response,
+  fallbackMsg: string
+): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) {
+    if (!res.ok)
+      throw new Error(
+        res.status === 502
+          ? "Backend unreachable. Check NEXT_PUBLIC_BACKEND_URL and that Render is running."
+          : res.status === 504
+            ? "Backend timed out. Render may be cold-starting (try again in 1 min)."
+            : fallbackMsg
+      );
+    return {};
+  }
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(
+      res.ok ? fallbackMsg : `Backend error (${res.status}). Try again or check Render logs.`
+    );
+  }
+}
+
 type Tab = "scrape" | "analyze" | "answer";
 
 export default function AssistantPage() {
@@ -75,8 +100,8 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_url: jobUrl.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Scraping failed");
+      const data = await parseJsonOrThrow(res, "Scraping failed");
+      if (!res.ok) throw new Error(data.detail || data.error || "Scraping failed");
       setScrapeResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scraping failed");
@@ -102,8 +127,8 @@ export default function AssistantPage() {
           resume_text: resumeText.trim(),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Analysis failed");
+      const data = await parseJsonOrThrow(res, "Analysis failed");
+      if (!res.ok) throw new Error(data.detail || data.error || "Analysis failed");
       setAnalyzeResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed");
@@ -136,8 +161,8 @@ export default function AssistantPage() {
           user_profile: profile,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Answer generation failed");
+      const data = await parseJsonOrThrow(res, "Answer generation failed");
+      if (!res.ok) throw new Error(data.detail || data.error || "Answer generation failed");
       setAnswerResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Answer generation failed");

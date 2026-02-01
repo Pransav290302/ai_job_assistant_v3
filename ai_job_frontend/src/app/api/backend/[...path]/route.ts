@@ -47,11 +47,27 @@ async function proxy(
       signal: AbortSignal.timeout(90000),
     });
     const data = await res.text();
+    const contentType = res.headers.get("Content-Type") || "";
+    // Backend may return HTML error page (502/503) - return JSON so frontend can parse
+    if (
+      !res.ok &&
+      (!contentType.includes("json") || !data.trim() || !data.startsWith("{"))
+    ) {
+      return NextResponse.json(
+        {
+          detail:
+            res.status === 502
+              ? "Backend unreachable"
+              : res.status === 504
+                ? "Backend timed out (cold start?)"
+                : `Backend error: ${res.status}`,
+        },
+        { status: res.status }
+      );
+    }
     return new NextResponse(data, {
       status: res.status,
-      headers: {
-        "Content-Type": res.headers.get("Content-Type") || "application/json",
-      },
+      headers: { "Content-Type": contentType || "application/json" },
     });
   } catch (e) {
     console.error("Backend proxy error:", e);
