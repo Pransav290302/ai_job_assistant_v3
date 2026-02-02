@@ -8,12 +8,13 @@ If your repo has both `ai_job_backend` and `ai_job_frontend`, set **Root Directo
 
 ## Build Configuration
 
-The project uses Webpack (instead of Turbopack) and memory optimizations to avoid "JS heap out of memory" on Vercel. Configured in `vercel.json`, `package.json`, and `next.config.ts`.
+The project uses Webpack (configured in `package.json`) and memory optimizations in `next.config.ts`. Vercel auto-detects Next.js and runs `npm run build`.
 
-**If build still fails with OOM:**
-1. Add **NODE_OPTIONS** in Vercel → Settings → Environment Variables: `--max-old-space-size=3072` (or `6144` for large projects)
-2. **Clear build cache:** Redeploy → uncheck "Use existing Build Cache"
-3. Or add **VERCEL_FORCE_NO_BUILD_CACHE** = `1` temporarily
+**If build fails with "JS heap out of memory":**
+1. In Vercel → **Settings** → **Environment Variables**, add:
+   - Name: `NODE_OPTIONS`
+   - Value: `--max-old-space-size=4096`
+2. Clear build cache: **Deployments** → **Redeploy** → uncheck "Use existing Build Cache"
 
 ## Environment Variables Setup
 
