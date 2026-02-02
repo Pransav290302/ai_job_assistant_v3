@@ -161,8 +161,14 @@ export default function LoginPage() {
             Login to your account.
           </h1>
 
-          {/* Login Form - suppressHydrationWarning: browser extensions (e.g. password managers) add data-* attributes after SSR */}
-          <form onSubmit={handleCredentialsLogin} className="space-y-5" suppressHydrationWarning>
+          {/* Login Form - method=get prevents 405 from password managers that POST; onSubmit handles auth */}
+          <form
+            method="get"
+            action="#"
+            onSubmit={handleCredentialsLogin}
+            className="space-y-5"
+            suppressHydrationWarning
+          >
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
