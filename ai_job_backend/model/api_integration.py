@@ -150,37 +150,14 @@ def extract_resume_profile_endpoint(resume_text: str) -> Dict:
         return {"success": False, "error": str(e)}
 
 
-def scrape_job_description_endpoint(
-    job_url: str,
-    job_description: Optional[str] = None,
-) -> Dict:
+def scrape_job_description_endpoint(job_url: str) -> Dict:
     """
-    API endpoint function for scraping job descriptions.
-    This function can be called directly from FastAPI routes.
-    
-    Args:
-        job_url: URL of the job posting
-        
-    Returns:
-        Dictionary with scraped job description or error information
-        
-    Example FastAPI route:
-        @router.post("/scrape/job")
-        async def scrape_job(data: ScrapeRequest):
-            result = scrape_job_description_endpoint(data.job_url)
-            return result
+    Scrape job description from LinkedIn or Glassdoor URL.
+    Requires BROWSERLESS_URL for JS rendering.
     """
     logger.info(f"Scrape job description endpoint called for: {job_url}")
     
     try:
-        # Use provided job description (e.g. from paste) - skip scrape; 80 chars = free-tier friendly
-        if job_description and len(job_description.strip()) >= 80:
-            return {
-                "success": True,
-                "text": job_description.strip(),
-                "url": job_url,
-                "source": "provided",
-            }
         config = get_config()
         # Use BROWSERLESS_URL only for LinkedIn/Glassdoor (remote Chrome via browserless.io)
         url_lower = job_url.lower()
@@ -190,7 +167,7 @@ def scrape_job_description_endpoint(
                 "success": False,
                 "error": (
                     "LinkedIn/Glassdoor require BROWSERLESS_URL. Set it in Render → Environment: "
-                    "wss://chrome.browserless.io?token=YOUR_TOKEN (free at browserless.io). Or paste the job."
+                    "wss://chrome.browserless.io?token=YOUR_TOKEN (free at browserless.io)"
                 ),
                 "url": job_url,
             }

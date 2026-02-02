@@ -129,12 +129,9 @@ export default function AssistantPage() {
     }
   }
 
-  const MIN_PASTE_CHARS = 80; // Free tier: paste works without ScraperAPI; 80 chars = ~2 sentences
-
   async function handleScrape() {
-    const hasPaste = jobDescription.trim().length >= MIN_PASTE_CHARS;
-    if (!jobUrl.trim() && !hasPaste) {
-      setError("Enter a job URL or paste the job description below (80+ chars). Paste always works on free tier.");
+    if (!jobUrl.trim()) {
+      setError("Enter a LinkedIn or Glassdoor job URL.");
       return;
     }
     setError(null);
@@ -144,15 +141,12 @@ export default function AssistantPage() {
       const res = await fetchWithTimeout(`${BACKEND}/api/job/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_url: jobUrl.trim() || "https://pasted-job-description",
-          job_description: hasPaste ? jobDescription.trim() : undefined,
-        }),
+        body: JSON.stringify({ job_url: jobUrl.trim() }),
       });
       const data = await parseJsonOrThrow(res, "Scraping failed");
       if (!res.ok) throw new Error(String(data.detail ?? data.error ?? "Scraping failed"));
       setScrapeResult(data);
-      if (data.text && typeof data.text === "string") setJobDescription(data.text);
+      setJobDescription(typeof data.text === "string" ? data.text : "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scraping failed");
     } finally {
@@ -161,9 +155,8 @@ export default function AssistantPage() {
   }
 
   async function handleAnalyze() {
-    const hasJob = jobUrl.trim() || jobDescription.trim().length >= MIN_PASTE_CHARS;
-    if (!hasJob || !resumeText.trim()) {
-      setError("Provide a job (URL or paste) and your resume.");
+    if (!jobUrl.trim() || !resumeText.trim()) {
+      setError("Scrape a job URL first, then provide your resume.");
       return;
     }
     setError(null);
@@ -174,8 +167,8 @@ export default function AssistantPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_url: jobUrl.trim() || undefined,
-          job_description: jobDescription.trim().length >= MIN_PASTE_CHARS ? jobDescription.trim() : undefined,
+          job_url: jobUrl.trim(),
+          job_description: jobDescription.trim() || undefined,
           resume_text: resumeText.trim(),
         }),
       });
@@ -209,9 +202,8 @@ export default function AssistantPage() {
   }
 
   async function handleGenerateAnswer() {
-    const hasJob = jobUrl.trim() || jobDescription.trim().length >= MIN_PASTE_CHARS;
-    if (!hasJob || !question.trim()) {
-      setError("Provide a job (URL or paste) and the application question.");
+    if (!jobUrl.trim() || !question.trim()) {
+      setError("Scrape a job URL first, then enter the application question.");
       return;
     }
     setError(null);
@@ -228,8 +220,8 @@ export default function AssistantPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          job_url: jobUrl.trim() || undefined,
-          job_description: jobDescription.trim().length >= MIN_PASTE_CHARS ? jobDescription.trim() : undefined,
+          job_url: jobUrl.trim(),
+          job_description: jobDescription.trim() || undefined,
           question: question.trim(),
           user_profile: profile,
         }),
@@ -295,17 +287,7 @@ export default function AssistantPage() {
 
         {tab === "scrape" && (
           <>
-            <div>
-              <span className="text-primary-200 font-medium">Or paste job description (recommended on free tier)</span>
-              <p className="text-sm text-primary-400 mb-1">Paste works without scraping—no LinkedIn blocks. 80+ chars (e.g. 2–3 sentences or bullets).</p>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste job description here (80+ chars)..."
-                rows={5}
-                className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
-              />
-            </div>
+            <p className="text-sm text-primary-400">LinkedIn and Glassdoor URLs supported. Requires BROWSERLESS_URL on Render.</p>
             <button
               onClick={handleScrape}
               disabled={loading}
@@ -314,9 +296,22 @@ export default function AssistantPage() {
               {loading ? "Scraping…" : "Scrape job description"}
             </button>
             {scrapeResult && (
-              <pre className="mt-4 p-4 rounded-lg bg-primary-800 text-sm text-primary-200 overflow-auto max-h-96">
-                {JSON.stringify(scrapeResult, null, 2)}
-              </pre>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg bg-emerald-900/30 border border-emerald-700/50 px-3 py-2 text-sm text-emerald-200">
+                  ✓ Scraped successfully
+                  {scrapeResult.method && (
+                    <span className="ml-2 text-emerald-400/80">({String(scrapeResult.method)})</span>
+                  )}
+                </div>
+                <div className="rounded-lg bg-primary-800 p-4">
+                  <p className="text-xs text-primary-400 mb-2 font-medium">Job description</p>
+                  <div className="text-sm text-primary-200 whitespace-pre-wrap overflow-auto max-h-80 leading-relaxed">
+                    {typeof scrapeResult.text === "string"
+                      ? scrapeResult.text
+                      : JSON.stringify(scrapeResult)}
+                  </div>
+                </div>
+              </div>
             )}
           </>
         )}
@@ -399,13 +394,8 @@ export default function AssistantPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-900/30 border border-red-700 text-red-200 px-4 py-2 space-y-1">
+        <div className="rounded-lg bg-red-900/30 border border-red-700 text-red-200 px-4 py-2">
           <p>{error}</p>
-          {(error.includes("Scraping failed") || error.includes("Analysis failed") || error.includes("unreachable") || error.includes("timed out")) && (
-            <p className="text-sm text-red-300/90">
-              <strong>Tip:</strong> Paste the job description (80+ chars) above—it always works. Or add <code className="bg-red-900/50 px-1 rounded">BROWSERLESS_URL</code> on Render for URL scraping (free at browserless.io).
-            </p>
-          )}
         </div>
       )}
     </div>

@@ -57,8 +57,7 @@ class GenerateAnswerRequest(BaseModel):
 
 
 class ScrapeJobRequest(BaseModel):
-    job_url: Optional[str] = Field(None, max_length=MAX_URL_LEN)
-    job_description: Optional[str] = Field(None, max_length=MAX_JOB_DESC_LEN)
+    job_url: str = Field(..., max_length=MAX_URL_LEN)
 
 
 class ExtractResumeRequest(BaseModel):
@@ -190,18 +189,13 @@ async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
     }
     """
     try:
-        if not request.job_url and not (request.job_description and len((request.job_description or "").strip()) >= 80):
-            raise HTTPException(status_code=400, detail="Provide job_url or job_description (80+ chars)")
-        logger.info(f"Job scraping request for: {request.job_url or 'pasted'}")
-        job_url = request.job_url or "https://pasted-job-description"
-        job_desc = request.job_description
+        if not request.job_url or not request.job_url.strip():
+            raise HTTPException(status_code=400, detail="Provide job_url (LinkedIn or Glassdoor)")
+        logger.info(f"Job scraping request for: {request.job_url}")
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _executor,
-            lambda: scrape_job_description_endpoint(
-                job_url=job_url,
-                job_description=job_desc,
-            ),
+            lambda: scrape_job_description_endpoint(job_url=request.job_url.strip()),
         )
         if not result.get('success'):
             raise HTTPException(status_code=500, detail=result.get('error', 'Scraping failed'))
