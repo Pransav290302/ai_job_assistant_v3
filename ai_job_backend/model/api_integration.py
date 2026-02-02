@@ -173,8 +173,8 @@ def scrape_job_description_endpoint(
     logger.info(f"Scrape job description endpoint called for: {job_url}")
     
     try:
-        # Use provided job description (e.g. from paste) - skip scrape
-        if job_description and len(job_description.strip()) > 200:
+        # Use provided job description (e.g. from paste) - skip scrape; 80 chars = free-tier friendly
+        if job_description and len(job_description.strip()) >= 80:
             return {
                 "success": True,
                 "text": job_description.strip(),
@@ -182,24 +182,23 @@ def scrape_job_description_endpoint(
                 "source": "provided",
             }
         config = get_config()
-        scraper_api_key = config.SCRAPER_API_KEY
-        # FREE_TIER: Playwright not installed; ScraperAPI required for LinkedIn/Glassdoor (JS sites)
+        # Use BROWSERLESS_URL only for LinkedIn/Glassdoor (remote Chrome via browserless.io)
         url_lower = job_url.lower()
         needs_js = "linkedin.com" in url_lower or "glassdoor.com" in url_lower
-        if needs_js and not scraper_api_key and config.FREE_TIER:
+        if needs_js and not config.BROWSERLESS_URL:
             return {
                 "success": False,
                 "error": (
-                    "LinkedIn/Glassdoor scraping requires SCRAPER_API_KEY on Render (free tier skips Playwright). "
-                    "Add it in Render → Environment, or paste the job description manually."
+                    "LinkedIn/Glassdoor require BROWSERLESS_URL. Set it in Render → Environment: "
+                    "wss://chrome.browserless.io?token=YOUR_TOKEN (free at browserless.io). Or paste the job."
                 ),
                 "url": job_url,
             }
         text = scrape_job_description(
             job_url,
-            use_selenium=config.USE_SELENIUM,
-            use_playwright=config.USE_PLAYWRIGHT,
-            scraper_api_key=scraper_api_key,
+            use_selenium=False,
+            use_playwright=bool(config.BROWSERLESS_URL),
+            scraper_api_key=None,
         )
         return {
             'success': True,

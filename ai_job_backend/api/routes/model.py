@@ -190,8 +190,8 @@ async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
     }
     """
     try:
-        if not request.job_url and not (request.job_description and len((request.job_description or "").strip()) > 200):
-            raise HTTPException(status_code=400, detail="Provide job_url or job_description (200+ chars)")
+        if not request.job_url and not (request.job_description and len((request.job_description or "").strip()) >= 80):
+            raise HTTPException(status_code=400, detail="Provide job_url or job_description (80+ chars)")
         logger.info(f"Job scraping request for: {request.job_url or 'pasted'}")
         job_url = request.job_url or "https://pasted-job-description"
         job_desc = request.job_description

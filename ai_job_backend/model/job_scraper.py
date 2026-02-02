@@ -338,20 +338,12 @@ class JobScraper:
         force_playwright: bool = False,
     ) -> Dict:
         """
-        Scrape job description. Priority:
-        1. ScraperAPI (if key set) for LinkedIn/Glassdoor
-        2. requests for Indeed/Greenhouse
-        3. Playwright for JS sites
+        Scrape job description. Uses BROWSERLESS_URL (Playwright) for LinkedIn/Glassdoor.
+        Priority: Playwright (Browserless) for JS sites → requests for Indeed/Greenhouse.
         """
         logger.info(f"Scraping: {url}")
         site = self._detect_site(url)
         needs_js = site in self.JS_SITES
-
-        # ScraperAPI first for protected sites or when explicitly preferred
-        if self.scraper_api_key and (needs_js or force_playwright):
-            text = self._scrape_with_scraper_api(url)
-            if text:
-                return {"success": True, "text": text, "method": "scraperapi", "url": url}
 
         # Indeed/Greenhouse: requests usually works
         if not needs_js:
@@ -359,17 +351,11 @@ class JobScraper:
             if text:
                 return {"success": True, "text": text, "method": "requests", "url": url}
 
-        # Playwright for LinkedIn/Glassdoor
+        # LinkedIn/Glassdoor: Playwright (BROWSERLESS_URL) only
         if self.use_playwright:
             text = self._scrape_with_playwright(url)
             if text:
                 return {"success": True, "text": text, "method": "playwright", "url": url}
-
-        # Try ScraperAPI for any site if configured
-        if self.scraper_api_key:
-            text = self._scrape_with_scraper_api(url)
-            if text:
-                return {"success": True, "text": text, "method": "scraperapi", "url": url}
 
         # Last resort: requests for JS sites (often login wall)
         text = self._scrape_with_requests(url)
@@ -380,8 +366,8 @@ class JobScraper:
             "success": False,
             "text": None,
             "error": (
-                "Could not extract job description. LinkedIn and Glassdoor often block scrapers. "
-                "Try: 1) Paste the job description manually, or 2) Add SCRAPER_API_KEY for reliable scraping (free tier: 1000 req/mo)."
+                "Could not extract job description. Ensure BROWSERLESS_URL is set "
+                "(wss://chrome.browserless.io?token=YOUR_TOKEN). Or paste the job manually."
             ),
             "url": url,
         }

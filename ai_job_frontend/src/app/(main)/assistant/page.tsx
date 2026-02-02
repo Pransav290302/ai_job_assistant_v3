@@ -129,10 +129,12 @@ export default function AssistantPage() {
     }
   }
 
+  const MIN_PASTE_CHARS = 80; // Free tier: paste works without ScraperAPI; 80 chars = ~2 sentences
+
   async function handleScrape() {
-    const hasPaste = jobDescription.trim().length > 200;
+    const hasPaste = jobDescription.trim().length >= MIN_PASTE_CHARS;
     if (!jobUrl.trim() && !hasPaste) {
-      setError("Enter a job URL or paste the job description below.");
+      setError("Enter a job URL or paste the job description below (80+ chars). Paste always works on free tier.");
       return;
     }
     setError(null);
@@ -159,7 +161,7 @@ export default function AssistantPage() {
   }
 
   async function handleAnalyze() {
-    const hasJob = jobUrl.trim() || jobDescription.trim().length > 200;
+    const hasJob = jobUrl.trim() || jobDescription.trim().length >= MIN_PASTE_CHARS;
     if (!hasJob || !resumeText.trim()) {
       setError("Provide a job (URL or paste) and your resume.");
       return;
@@ -173,7 +175,7 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           job_url: jobUrl.trim() || undefined,
-          job_description: jobDescription.trim().length > 200 ? jobDescription.trim() : undefined,
+          job_description: jobDescription.trim().length >= MIN_PASTE_CHARS ? jobDescription.trim() : undefined,
           resume_text: resumeText.trim(),
         }),
       });
@@ -207,7 +209,7 @@ export default function AssistantPage() {
   }
 
   async function handleGenerateAnswer() {
-    const hasJob = jobUrl.trim() || jobDescription.trim().length > 200;
+    const hasJob = jobUrl.trim() || jobDescription.trim().length >= MIN_PASTE_CHARS;
     if (!hasJob || !question.trim()) {
       setError("Provide a job (URL or paste) and the application question.");
       return;
@@ -227,7 +229,7 @@ export default function AssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           job_url: jobUrl.trim() || undefined,
-          job_description: jobDescription.trim().length > 200 ? jobDescription.trim() : undefined,
+          job_description: jobDescription.trim().length >= MIN_PASTE_CHARS ? jobDescription.trim() : undefined,
           question: question.trim(),
           user_profile: profile,
         }),
@@ -294,12 +296,12 @@ export default function AssistantPage() {
         {tab === "scrape" && (
           <>
             <div>
-              <span className="text-primary-200 font-medium">Or paste job description</span>
-              <p className="text-sm text-primary-400 mb-1">Use when scraping fails (e.g. LinkedIn blocks). Paste the full job posting text.</p>
+              <span className="text-primary-200 font-medium">Or paste job description (recommended on free tier)</span>
+              <p className="text-sm text-primary-400 mb-1">Paste works without scraping—no LinkedIn blocks. 80+ chars (e.g. 2–3 sentences or bullets).</p>
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste job description here (200+ chars)..."
+                placeholder="Paste job description here (80+ chars)..."
                 rows={5}
                 className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
               />
@@ -401,7 +403,7 @@ export default function AssistantPage() {
           <p>{error}</p>
           {(error.includes("Scraping failed") || error.includes("Analysis failed") || error.includes("unreachable") || error.includes("timed out")) && (
             <p className="text-sm text-red-300/90">
-              Tip: If scraping fails (e.g. LinkedIn blocks), paste the job description manually in the Scrape tab. Add <code className="bg-red-900/50 px-1 rounded">SCRAPER_API_KEY</code> on Render for reliable scraping (1000 free req/mo at scraperapi.com).
+              <strong>Tip:</strong> Paste the job description (80+ chars) above—it always works. Or add <code className="bg-red-900/50 px-1 rounded">BROWSERLESS_URL</code> on Render for URL scraping (free at browserless.io).
             </p>
           )}
         </div>

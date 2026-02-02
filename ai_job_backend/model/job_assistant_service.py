@@ -36,11 +36,10 @@ class JobAssistantService:
             llm_api_key: API key (optional, reads from env if not provided)
             llm_base_url: Base URL for API (optional, uses OpenAI default if not provided)
         """
-        scraper_api_key = os.getenv("SCRAPER_API_KEY")
         self.scraper = JobScraper(
-            use_selenium=use_selenium,
+            use_selenium=False,
             use_playwright=use_playwright,
-            scraper_api_key=scraper_api_key,
+            scraper_api_key=None,
         )
         self.llm_model = llm_model or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         # Use provided API key or get from environment
@@ -74,7 +73,7 @@ class JobAssistantService:
         logger.info(f"Starting resume analysis for job: {job_url or 'pasted'}")
         
         # Step 1: Use provided job description or scrape
-        if job_description and len(job_description.strip()) > 200:
+        if job_description and len(job_description.strip()) >= 80:
             job_description = job_description.strip()
             logger.info(f"Using provided job description ({len(job_description)} chars)")
         else:
@@ -145,7 +144,7 @@ class JobAssistantService:
         """
         logger.info(f"Starting answer generation for job: {job_url or 'pasted'}")
 
-        if job_description and len(job_description.strip()) > 200:
+        if job_description and len(job_description.strip()) >= 80:
             job_description = job_description.strip()
             logger.info(f"Using provided job description ({len(job_description)} chars)")
         else:

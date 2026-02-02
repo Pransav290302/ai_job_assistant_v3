@@ -38,9 +38,6 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
-      # Optional: Browserless (6 hrs free/month) - different IPs for LinkedIn/Glassdoor
+      # Required for LinkedIn/Glassdoor scraping - get token at browserless.io (6 hrs free/mo)
       - key: BROWSERLESS_URL
-        sync: false
-      # Optional: ScraperAPI - production-grade job scraping, 1000 free credits/mo
-      - key: SCRAPER_API_KEY
         sync: false

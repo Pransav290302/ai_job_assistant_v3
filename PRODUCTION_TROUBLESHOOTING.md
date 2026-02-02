@@ -21,7 +21,7 @@ If the **AI Assistant** (scrape, analyze, generate) throws errors on production,
 | `ALLOWED_ORIGINS` | ✅ Yes | `https://your-app.vercel.app` (or comma-separated) |
 | `OPENAI_API_KEY` | ✅ Yes | Your OpenAI key |
 | `AUTH_SECRET_KEY` | ✅ Yes | Random secret (e.g. `openssl rand -base64 32`) |
-| `SCRAPER_API_KEY` | ✅ For LinkedIn | From scraperapi.com (1000 free/mo) |
+| `BROWSERLESS_URL` | ✅ For LinkedIn | `wss://chrome.browserless.io?token=YOUR_TOKEN` from browserless.io |
 | `FREE_TIER` | Auto | `true` = Playwright skipped, ScraperAPI required for LinkedIn |
 
 ## Common Errors
@@ -34,9 +34,9 @@ If the **AI Assistant** (scrape, analyze, generate) throws errors on production,
   - Render free tier cold-starts in ~50–90s — wait 1 min and try again
 
 ### 2. LinkedIn URL scraping fails
-- **Cause:** With `FREE_TIER=true`, Playwright is not installed. ScraperAPI is required.
-- **Fix:** Add `SCRAPER_API_KEY` in Render → Environment (get key at scraperapi.com, 1000 free requests/month)
-- **Workaround:** Paste the job description manually in the text area (200+ chars) and click "Scrape job description"
+- **Cause:** `BROWSERLESS_URL` not set on Render.
+- **Fix:** Add `BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN` in Render → Environment (get token at browserless.io, 6 hrs free/month)
+- **Workaround:** Paste the job description manually (80+ chars) and click "Scrape job description"
 
 ### 3. Paste description also fails
 - **Cause:** If both scrape and paste fail, the backend is likely unreachable.
