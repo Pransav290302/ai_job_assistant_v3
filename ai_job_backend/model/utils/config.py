@@ -21,7 +21,9 @@ class Config:
     
     # Scraper Configuration
     USE_SELENIUM: bool = os.getenv('USE_SELENIUM', 'false').lower() == 'true'
-    USE_PLAYWRIGHT: bool = os.getenv('USE_PLAYWRIGHT', 'true').lower() == 'true'  # Works on Render
+    # FREE_TIER=true skips "playwright install chromium" - must use ScraperAPI for LinkedIn
+    FREE_TIER: bool = os.getenv('FREE_TIER', 'false').lower() == 'true'
+    USE_PLAYWRIGHT: bool = (not FREE_TIER) and (os.getenv('USE_PLAYWRIGHT', 'true').lower() == 'true')
     USE_STEALTH: bool = os.getenv('USE_STEALTH', 'true').lower() == 'true'  # Anti-detection
     BROWSERLESS_URL: Optional[str] = os.getenv('BROWSERLESS_URL')  # Remote browser
     # ScraperAPI: production-grade scraping, 1000 free credits/mo. Set for reliable LinkedIn/Glassdoor.

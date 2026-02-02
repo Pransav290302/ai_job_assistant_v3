@@ -182,11 +182,24 @@ def scrape_job_description_endpoint(
                 "source": "provided",
             }
         config = get_config()
+        scraper_api_key = config.SCRAPER_API_KEY
+        # FREE_TIER: Playwright not installed; ScraperAPI required for LinkedIn/Glassdoor (JS sites)
+        url_lower = job_url.lower()
+        needs_js = "linkedin.com" in url_lower or "glassdoor.com" in url_lower
+        if needs_js and not scraper_api_key and config.FREE_TIER:
+            return {
+                "success": False,
+                "error": (
+                    "LinkedIn/Glassdoor scraping requires SCRAPER_API_KEY on Render (free tier skips Playwright). "
+                    "Add it in Render → Environment, or paste the job description manually."
+                ),
+                "url": job_url,
+            }
         text = scrape_job_description(
             job_url,
             use_selenium=config.USE_SELENIUM,
             use_playwright=config.USE_PLAYWRIGHT,
-            scraper_api_key=config.SCRAPER_API_KEY,
+            scraper_api_key=scraper_api_key,
         )
         return {
             'success': True,
