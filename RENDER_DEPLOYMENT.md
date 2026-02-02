@@ -1,6 +1,7 @@
 # Render Backend Deployment (Vercel Frontend Integration)
 
 > See [DEPLOYMENT.md](./DEPLOYMENT.md) for a full deployment checklist.  
+> **Supabase database?** See [RENDER_SUPABASE_DATABASE.md](./RENDER_SUPABASE_DATABASE.md) for PG_* setup (no password encoding).  
 > **Demo / free tier?** See [FREE_TIER.md](./FREE_TIER.md) for lighter resource usage.
 
 This guide helps you fix **"Failed to fetch"** when your Vercel frontend calls your Render backend.

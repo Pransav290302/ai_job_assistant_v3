@@ -14,9 +14,20 @@ services:
       # Set FREE_TIER=true for demo to save RAM, skip Playwright, use paste/ScraperAPI
       - key: FREE_TIER
         value: "true"
-      # Add PostgreSQL in Render Dashboard → Connect to this service (auto-injects DATABASE_URL)
-      # Or set manually: key DATABASE_URL, value = postgresql://user:pass@host/db
+      # Database: use DATABASE_URL OR PG_* (for Supabase, PG_* avoids password encoding)
+      # Option A: DATABASE_URL (Render Postgres or Supabase - encode @ in password as %40)
       - key: DATABASE_URL
+        sync: false
+      # Option B: PG_* for Supabase - set these, leave DATABASE_URL empty
+      - key: PG_HOST
+        sync: false
+      - key: PG_USER
+        sync: false
+      - key: PG_PASSWORD
+        sync: false
+      - key: PG_DATABASE
+        sync: false
+      - key: PG_PORT
         sync: false
       # Generate a secret in Dashboard (e.g. "Generate value") or set your own
       - key: OPENAI_API_KEY

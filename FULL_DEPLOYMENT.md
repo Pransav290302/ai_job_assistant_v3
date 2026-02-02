@@ -71,7 +71,7 @@ Replace `YOUR-VERCEL-APP` with your actual Vercel project name.
 3. In your Web Service → **Environment** → **Add Environment Variable**
 4. Add **Linked** variable: `DATABASE_URL` → link to your Postgres
 
-Or use **Supabase Postgres**: Copy connection string from Supabase → Settings → Database → Connection string (URI).
+Or use **Supabase Postgres**: See [RENDER_SUPABASE_DATABASE.md](./RENDER_SUPABASE_DATABASE.md) for PG_* or DATABASE_URL setup.
 
 ### 2.3 Render Environment Variables
 
