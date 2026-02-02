@@ -1,6 +1,9 @@
 import { NavbarUser } from "@/_components/navigation";
 import Logo from "@/_components/main/Logo";
 
+// Prevent prerender - dashboard pages need Supabase auth at request time
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col text-slate-100">
