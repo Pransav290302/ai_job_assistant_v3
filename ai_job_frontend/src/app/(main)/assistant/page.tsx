@@ -299,9 +299,9 @@ export default function AssistantPage() {
               <div className="mt-4 space-y-3">
                 <div className="rounded-lg bg-emerald-900/30 border border-emerald-700/50 px-3 py-2 text-sm text-emerald-200">
                   ✓ Scraped successfully
-                  {scrapeResult.method && (
+                  {scrapeResult.method != null ? (
                     <span className="ml-2 text-emerald-400/80">({String(scrapeResult.method)})</span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="rounded-lg bg-primary-800 p-4">
                   <p className="text-xs text-primary-400 mb-2 font-medium">Job description</p>
