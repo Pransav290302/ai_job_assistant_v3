@@ -1,22 +1,34 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Supabase Admin Client
- * * IMPORTANT SECURITY NOTES:
- * 1. This client uses the SERVICE_ROLE_KEY, which bypasses Row Level Security (RLS).
- * 2. It must ONLY be used in server-side environments (Node.js/Edge Runtime).
- * 3. Never expose this client or the service_role key to the browser/client-side.
+ * Lazy-initialized so build succeeds when env vars are not yet set (e.g. first deploy).
+ * Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables.
+ *
+ * SECURITY: Service role bypasses RLS. Use only server-side; never expose to the browser.
  */
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
+let _admin: SupabaseClient | null = null;
+
+function getSupabaseAdmin(): SupabaseClient {
+  if (_admin) return _admin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel → Settings → Environment Variables."
+    );
+  }
+  _admin = createClient(url, key, {
     auth: {
-      // Prevents the client from automatically refreshing tokens in a server environment.
       autoRefreshToken: false,
-      // Crucial: Prevents the admin client from trying to store or reuse user sessions.
-      // This ensures each request is isolated and treated as a pure 'Superuser' action.
       persistSession: false,
     },
-  }
-);
+  });
+  return _admin;
+}
+
+export const supabaseAdmin = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    return getSupabaseAdmin()[prop as keyof SupabaseClient];
+  },
+});
