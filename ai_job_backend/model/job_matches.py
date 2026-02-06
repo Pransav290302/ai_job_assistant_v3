@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 def get_candidate_jobs_for_user(
     user_id: str,
-    max_jobs: int = 20,
+    max_jobs: int = 60,
 ) -> Dict[str, Any]:
     """
     Get user profile from DB (preferences: skills, experience, interests) and
-    fetch candidate jobs from discover (ZipRecruiter) using profile as query/location.
+    fetch candidate jobs from discover (ZipRecruiter + DailyAIJobs + AIWorkPortal).
 
     Returns:
         {"profile": {...}, "jobs": [...], "query": "...", "location": "..."}
@@ -58,8 +58,8 @@ def get_candidate_jobs_for_user(
 
 def rank_jobs_for_user(
     user_id: str,
-    max_jobs: int = 20,
-    max_ranked: int = 15,
+    max_jobs: int = 60,
+    max_ranked: int = 50,
 ) -> Dict[str, Any]:
     """
     Full flow: get profile from preferences DB, get candidate jobs (discover),

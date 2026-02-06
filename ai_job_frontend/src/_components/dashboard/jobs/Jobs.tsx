@@ -47,7 +47,7 @@ export default function Jobs({ initialJobs }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ user_id: userId, max_jobs: 25, max_ranked: 20 }),
+          body: JSON.stringify({ user_id: userId, max_jobs: 60, max_ranked: 50 }),
         });
         const rankData = await rankRes.json().catch(() => ({}));
         if (rankRes.ok && !rankData.error) {
@@ -94,7 +94,7 @@ export default function Jobs({ initialJobs }: Props) {
       }
       setStatus("Searching job boards…");
       const res = await fetch(
-        `${base}/api/job/discover?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&max_results=25`,
+        `${base}/api/job/discover?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&max_results=60`,
         { credentials: "include" }
       );
       const data = await res.json().catch(() => ({}));

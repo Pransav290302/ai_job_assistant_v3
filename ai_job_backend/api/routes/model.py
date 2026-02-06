@@ -182,8 +182,8 @@ class RankJobsForUserRequest(BaseModel):
     """Request body for POST /api/job/rank-for-user."""
 
     user_id: str = Field(..., min_length=1, max_length=64, description="Supabase auth user UUID")
-    max_jobs: int = Field(20, ge=1, le=50, description="Max candidate jobs to fetch from discover")
-    max_ranked: int = Field(15, ge=1, le=30, description="Max ranked jobs to return from DeepSeek R1")
+    max_jobs: int = Field(60, ge=1, le=150, description="Max candidate jobs to fetch (ZipRecruiter + DailyAIJobs + AIWorkPortal)")
+    max_ranked: int = Field(50, ge=1, le=100, description="Max ranked jobs to return from DeepSeek R1")
 
 
 @router.post("/job/rank-for-user")
@@ -194,7 +194,7 @@ async def job_rank_for_user(request: Request, body: RankJobsForUserRequest) -> D
     Uses profile from preferences DB (skills, experience, interests), fetches candidate jobs
     (from discover), then DeepSeek R1 reasons and returns ranked jobs + explanations.
 
-    Body: { "user_id": "uuid", "max_jobs": 20, "max_ranked": 15 }
+    Body: { "user_id": "uuid", "max_jobs": 60, "max_ranked": 50 }
     """
     try:
         if not get_config().OPENAI_API_KEY:
@@ -227,12 +227,12 @@ async def job_discover(
     max_results: int = 20,
 ) -> Dict:
     """
-    GET /api/job/discover?q=software+engineer&location=remote&max_results=20
-    Discover new jobs from ZipRecruiter matching query and location.
-    Use user profile roles/skills as q for personalized results.
+    GET /api/job/discover?q=software+engineer&location=remote&max_results=60
+    Discover jobs from ZipRecruiter, DailyAIJobs.com, and AIWorkPortal.com (free).
+    Use user profile roles/skills as q for personalized results. Returns up to 60 jobs.
     """
     try:
-        max_results = min(max(1, max_results), 50)
+        max_results = min(max(1, max_results), 150)
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _executor,

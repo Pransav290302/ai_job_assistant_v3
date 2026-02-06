@@ -103,7 +103,7 @@ export default function MatchesWrapper({ initialMatches }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ user_id: userId, max_jobs: 20, max_ranked: 15 }),
+          body: JSON.stringify({ user_id: userId, max_jobs: 60, max_ranked: 50 }),
         });
         const rankData = await rankRes.json().catch(() => ({}));
         if (rankRes.ok && !rankData.error) {
@@ -152,7 +152,7 @@ export default function MatchesWrapper({ initialMatches }: Props) {
         // keep defaults
       }
       setAgentStatus("Finding matches…");
-      const discoverUrl = `${base}/api/job/discover?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&max_results=20`;
+      const discoverUrl = `${base}/api/job/discover?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}&max_results=60`;
       const res = await fetch(discoverUrl, { credentials: "include" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

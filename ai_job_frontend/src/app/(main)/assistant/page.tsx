@@ -301,7 +301,7 @@ export default function AssistantPage() {
       const params = new URLSearchParams({
         q: discoverQuery.trim() || "software engineer",
         location: discoverLocation.trim(),
-        max_results: "20",
+        max_results: "60",
       });
       const res = await fetchWithTimeout(`${BACKEND}/api/job/discover?${params}`, { method: "GET" });
       const data = await parseJsonOrThrow(res, "Discover failed");

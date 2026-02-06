@@ -160,7 +160,7 @@ if SMOLAGENTS_AVAILABLE:
         """
         from model.job_matches import rank_jobs_for_user as rank_jobs_for_user_impl
         try:
-            result = rank_jobs_for_user_impl(user_id.strip(), max_jobs=20, max_ranked=15)
+            result = rank_jobs_for_user_impl(user_id.strip(), max_jobs=60, max_ranked=50)
             if result.get("error"):
                 return f"Ranking failed: {result['error']}"
             lines = []
