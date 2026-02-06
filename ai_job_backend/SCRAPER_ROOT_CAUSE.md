@@ -1,4 +1,21 @@
-# Why DailyAIJobs and AIWorkPortal Sometimes Return 0 Jobs
+# Job Discovery: ScraperAPI 500 and Zero Results
+
+## ScraperAPI 500 (ZipRecruiter / long URLs)
+
+### Why it happens
+- The **request URL** we send to ScraperAPI is:  
+  `http://api.scraperapi.com/?api_key=...&url=<ENCODED_TARGET_URL>&render=true`.  
+  The **target URL** is the ZipRecruiter search page with `search=<query>&location=<location>`.
+- When the profile (or API) sends a **very long** query (e.g. "AI & Machine Learning, Software Engineering, Lab & Research, Data & Analytics, PyTorch, AWS, NumPy, Pandas") and a **very long** location (e.g. "Atlanta, Austin, Chicago, Denver, Los Angeles, Miami, New York City, Remote in USA, ..."), the ZipRecruiter URL becomes huge. After encoding, the **full request URI** can exceed the server’s limit (often 2KB–8KB). The server then returns **500 Internal Server Error** (or 414 URI Too Long).
+- Job boards are designed for **short** search phrases (e.g. "software engineer", "data scientist Python"), not 200-character comma-separated lists.
+
+### Fix (no patchwork)
+1. **Discovery-friendly query/location** (`job_matches.py`): Before calling discovery, we build a **short** search string and **short** location from the profile (e.g. first role + first 1–2 skills, max 80 chars; one city or "Remote", max 60 chars). Discovery uses these; the full profile is still used for **ranking**.
+2. **Defensive caps** (`job_discovery.py`): ZipRecruiter discovery **always** truncates query and location to 80 and 60 characters so the built URL never exceeds a safe length, even if another caller passes long strings.
+
+---
+
+## Why DailyAIJobs and AIWorkPortal Sometimes Return 0 Jobs
 
 ## Root causes (from diagnostics)
 

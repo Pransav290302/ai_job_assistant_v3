@@ -4,13 +4,52 @@ Job matching flow: profile from preferences DB + jobs from discover (or DB)
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from model.job_discovery import discover_jobs
 from model.job_ranker import rank_jobs_with_reasoning
 from model.profile_lookup import get_user_profile_from_db
 
 logger = logging.getLogger(__name__)
+
+# Max lengths for discovery URLs. Job boards and ScraperAPI expect short search terms;
+# long URLs cause 500 errors (URI length limits).
+MAX_DISCOVERY_QUERY_LEN = 80
+MAX_DISCOVERY_LOCATION_LEN = 60
+
+
+def _discovery_query_and_location(profile: Dict[str, Any]) -> Tuple[str, str]:
+    """
+    Build a short, discovery-friendly query and location from profile.
+    Job boards (and ScraperAPI) expect human-style short phrases, not long
+    comma-separated lists — long URLs cause 500/414 errors.
+    """
+    roles = profile.get("current_title") or ""
+    if isinstance(roles, list):
+        roles = (roles[0] or "software engineer") if roles else "software engineer"
+    roles = (roles or "software engineer").strip() or "software engineer"
+    skills = (profile.get("skills") or "").strip()
+    # One short phrase: prefer first role, optionally add first skill or two
+    if skills:
+        parts = [s.strip() for s in skills.split(",") if s.strip()][:2]
+        query = f"{roles} {' '.join(parts)}".strip()[:MAX_DISCOVERY_QUERY_LEN]
+    else:
+        query = roles[:MAX_DISCOVERY_QUERY_LEN]
+    query = query or "software engineer"
+
+    loc_raw = (profile.get("location") or "").strip()
+    if not loc_raw:
+        return query, ""
+    # Single location or "Remote" when many — job boards don't support 15 cities in one search
+    if "," in loc_raw:
+        parts = [p.strip() for p in loc_raw.split(",") if p.strip()]
+        if any("remote" in p.lower() for p in parts):
+            location = "Remote"
+        else:
+            location = (parts[0] or loc_raw)[:MAX_DISCOVERY_LOCATION_LEN]
+    else:
+        location = loc_raw[:MAX_DISCOVERY_LOCATION_LEN]
+    return query, location
 
 
 def get_candidate_jobs_for_user(
@@ -28,10 +67,8 @@ def get_candidate_jobs_for_user(
     if profile.get("error"):
         return {"profile": profile, "jobs": [], "query": "", "location": "", "error": profile["error"]}
 
-    query = (profile.get("current_title") or "software engineer").strip() or "software engineer"
-    if profile.get("skills"):
-        query = f"{query} {profile.get('skills', '')}".strip()
-    location = (profile.get("location") or "").strip()
+    # Use short, discovery-friendly query/location so URLs stay within safe length (avoid ScraperAPI 500)
+    query, location = _discovery_query_and_location(profile)
 
     result = discover_jobs(query=query, location=location, max_results=max_jobs)
     jobs = result.get("jobs") or []

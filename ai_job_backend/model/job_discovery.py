@@ -28,6 +28,46 @@ DAILYAIJOBS_JOBS_PATH = "/"  # homepage and JS-loaded listings
 AIWORKPORTAL_BASE = "https://aiworkportal.com"
 AIWORKPORTAL_JOBS_PATH = "/jobs"
 
+# Cap query/location length so the ZipRecruiter URL (and thus ScraperAPI request) stays under
+# server URI limits. Long URLs cause ScraperAPI 500 and job boards don't support huge search strings.
+MAX_QUERY_LEN = 80
+MAX_LOCATION_LEN = 60
+
+# Only include jobs posted within this many days (filter out old / no-longer-accepting listings).
+MAX_JOB_AGE_DAYS = 7
+
+
+def _parse_posted_days_ago(text: str) -> Optional[int]:
+    """
+    Parse "posted X days ago" / "1 week ago" / "X hours ago" from card text.
+    Returns approximate days ago, or None if not found / unknown.
+    """
+    if not text:
+        return None
+    text = text.lower().strip()
+    # "X hours ago" -> 0 days (today)
+    m = re.search(r"(\d+)\s*hours?\s*ago", text)
+    if m:
+        return 0
+    if "today" in text or "just now" in text:
+        return 0
+    # "X days ago"
+    m = re.search(r"(\d+)\s*days?\s*ago", text)
+    if m:
+        return min(int(m.group(1)), 999)
+    # "1 week ago" -> 7
+    if re.search(r"1\s*week\s*ago", text):
+        return 7
+    # "X weeks ago"
+    m = re.search(r"(\d+)\s*weeks?\s*ago", text)
+    if m:
+        return int(m.group(1)) * 7
+    # "1 month ago" or "X months ago"
+    m = re.search(r"(\d+)\s*months?\s*ago", text)
+    if m:
+        return int(m.group(1)) * 30
+    return None
+
 
 def _make_session() -> requests.Session:
     s = requests.Session()
@@ -86,11 +126,12 @@ def discover_ziprecruiter(
 ) -> List[Dict[str, Any]]:
     """
     Fetch job listings from ZipRecruiter search.
+    Query and location are capped so the request URL stays within safe length (avoids ScraperAPI 500).
     Returns list of {title, company, url, snippet, source}.
     """
     jobs: List[Dict[str, Any]] = []
-    q = (query or "").strip() or "jobs"
-    loc = (location or "").strip()
+    q = ((query or "").strip() or "jobs")[:MAX_QUERY_LEN]
+    loc = ((location or "").strip())[:MAX_LOCATION_LEN]
     params: Dict[str, str] = {"search": q}
     if loc:
         params["location"] = loc
@@ -108,16 +149,25 @@ def discover_ziprecruiter(
         href = a.get("href") or ""
         if not href.startswith("http"):
             href = urljoin("https://www.ziprecruiter.com", href)
+        card_text = ""
+        parent = a.parent
+        for _ in range(5):
+            if parent is None:
+                break
+            card_text = (parent.get_text(separator=" ", strip=True) or "")[:500]
+            if "ago" in card_text.lower():
+                break
+            parent = getattr(parent, "parent", None)
+        posted_days = _parse_posted_days_ago(card_text)
+        if posted_days is not None and posted_days > MAX_JOB_AGE_DAYS:
+            continue
         title = (a.get_text(strip=True) or "Job")[:200]
         if len(title) < 2:
             continue
-        jobs.append({
-            "title": title,
-            "company": "",
-            "url": href,
-            "snippet": "",
-            "source": "ziprecruiter",
-        })
+        job = {"title": title, "company": "", "url": href, "snippet": "", "source": "ziprecruiter"}
+        if posted_days is not None:
+            job["posted_days_ago"] = posted_days
+        jobs.append(job)
     return jobs[:max_results]
 
 
@@ -155,22 +205,31 @@ def discover_dailyaijobs(
             continue
         if not href.startswith("http"):
             href = urljoin(DAILYAIJOBS_BASE, href)
-        # Skip nav/listing pages (only want individual job pages)
         if "/jobs" in href.rstrip("/") and href.rstrip("/").endswith("/jobs"):
             continue
         if href in seen_urls:
+            continue
+        # Get parent card text for posted date
+        card_text = ""
+        parent = a.parent
+        for _ in range(5):
+            if parent is None:
+                break
+            card_text = (parent.get_text(separator=" ", strip=True) or "")[:500]
+            if "ago" in card_text.lower() or "day" in card_text.lower():
+                break
+            parent = getattr(parent, "parent", None)
+        posted_days = _parse_posted_days_ago(card_text)
+        if posted_days is not None and posted_days > MAX_JOB_AGE_DAYS:
             continue
         seen_urls.add(href)
         title = (a.get_text(strip=True) or "AI/ML Job")[:200]
         if len(title) < 3:
             continue
-        jobs.append({
-            "title": title,
-            "company": "",
-            "url": href,
-            "snippet": "",
-            "source": "dailyaijobs",
-        })
+        job = {"title": title, "company": "", "url": href, "snippet": "", "source": "dailyaijobs"}
+        if posted_days is not None:
+            job["posted_days_ago"] = posted_days
+        jobs.append(job)
     if jobs:
         logger.info("DailyAIJobs returned %d jobs", len(jobs))
     return jobs[:max_results]
@@ -198,26 +257,42 @@ def discover_aiworkportal(
         if not html:
             continue
         soup = BeautifulSoup(html, "html.parser")
-        # Job detail links: /job/slug-id (not /jobs)
+        # Job detail links: /job/slug-id (not /jobs). Get card text for "X days ago" / "1 week ago"
         for a in soup.select('a[href*="/job/"]'):
             if len(jobs) >= max_results:
                 break
             href = (a.get("href") or "").strip()
             if not href.startswith("http"):
                 href = urljoin(AIWORKPORTAL_BASE, href)
-            # Must be single job page: /job/something
-            if re.match(r"^https?://[^/]+/job/[^/]+/?$", href) and href not in seen_urls:
-                seen_urls.add(href)
-                title = (a.get_text(strip=True) or "AI/ML Job").strip()[:200]
-                if len(title) < 3:
-                    title = "AI/ML Job"
-                jobs.append({
-                    "title": title,
-                    "company": "",
-                    "url": href,
-                    "snippet": "",
-                    "source": "aiworkportal",
-                })
+            if not re.match(r"^https?://[^/]+/job/[^/]+/?$", href) or href in seen_urls:
+                continue
+            # Get parent card text to parse posted date (e.g. "1 week ago")
+            card_text = ""
+            parent = a.parent
+            for _ in range(5):
+                if parent is None:
+                    break
+                card_text = (parent.get_text(separator=" ", strip=True) or "")[:500]
+                if "ago" in card_text.lower():
+                    break
+                parent = getattr(parent, "parent", None)
+            posted_days = _parse_posted_days_ago(card_text)
+            if posted_days is not None and posted_days > MAX_JOB_AGE_DAYS:
+                continue
+            seen_urls.add(href)
+            title = (a.get_text(strip=True) or "AI/ML Job").strip()[:200]
+            if len(title) < 3:
+                title = "AI/ML Job"
+            job = {
+                "title": title,
+                "company": "",
+                "url": href,
+                "snippet": "",
+                "source": "aiworkportal",
+            }
+            if posted_days is not None:
+                job["posted_days_ago"] = posted_days
+            jobs.append(job)
 
     if jobs:
         logger.info("AIWorkPortal returned %d jobs", len(jobs))
@@ -231,13 +306,15 @@ def discover_jobs(
 ) -> Dict[str, Any]:
     """
     Discover jobs from ZipRecruiter, DailyAIJobs.com, and AIWorkPortal.com.
-    Runs all three sources in parallel so total time ≈ slowest source, not sum.
+    - All three sources are fetched in parallel (ZipRecruiter, DailyAIJobs, AIWorkPortal at once).
+    - Jobs older than MAX_JOB_AGE_DAYS (1 week) are excluded so you get enough recent jobs for matching.
     Returns { success, jobs, query, location, sources }.
     """
     sess = _make_session()
     all_jobs: List[Dict[str, Any]] = []
     seen_urls: set = set()
-    per_source = max(25, (max_results // 3) + 5)
+    # Request extra per source so after 1-week recency filter we still have enough for matching
+    per_source = min(50, max(35, max_results + 20))
 
     # Run all three sources in parallel (total time ≈ slowest source, not sum)
     zip_jobs: List[Dict[str, Any]] = []
@@ -276,10 +353,22 @@ def discover_jobs(
             seen_urls.add(u)
             all_jobs.append(j)
 
-    result_list = all_jobs[:max_results]
+    # Keep only jobs posted within MAX_JOB_AGE_DAYS (drop old / no-longer-accepting)
+    filtered = []
+    for j in all_jobs:
+        days = j.get("posted_days_ago")
+        if days is not None and days > MAX_JOB_AGE_DAYS:
+            continue
+        filtered.append(j)
+    # Remove internal key from response
+    result_list = []
+    for j in filtered[:max_results]:
+        j = {k: v for k, v in j.items() if k != "posted_days_ago"}
+        result_list.append(j)
+
     sources_used = list({j.get("source") for j in result_list if j.get("source")})
     logger.info(
-        "Discovery total: %d jobs (ZipRecruiter=%d, DailyAIJobs=%d, AIWorkPortal=%d)",
+        "Discovery total: %d jobs after recency filter (ZipRecruiter=%d, DailyAIJobs=%d, AIWorkPortal=%d)",
         len(result_list), len(zip_jobs), len(daily_jobs), len(portal_jobs),
     )
 
