@@ -61,6 +61,58 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            <section className="rounded-2xl border border-slate-700 bg-slate-900/50 p-6">
+              <h2 className="text-lg font-semibold text-white mb-1">Overview</h2>
+              <p className="text-sm text-slate-400 mb-4">Quick access to job search and tracking.</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Link
+                  href="/matches"
+                  className="group rounded-xl border border-slate-600 bg-slate-800/50 p-5 hover:border-sky-500/50 hover:bg-slate-800/70 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400 group-hover:bg-sky-500/30">
+                      <span className="text-lg">🎯</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-100">Job Matching</span>
+                      <p className="text-xs text-slate-400 mt-1">AI-ranked roles based on your profile. Find best matches.</p>
+                      <span className="inline-block mt-2 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-xs text-slate-300">Matches</span>
+                    </div>
+                  </div>
+                </Link>
+                <Link
+                  href="/jobs"
+                  className="group rounded-xl border border-slate-600 bg-slate-800/50 p-5 hover:border-sky-500/50 hover:bg-slate-800/70 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30">
+                      <span className="text-lg">📋</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-100">Browse Jobs</span>
+                      <p className="text-xs text-slate-400 mt-1">Discover jobs from ZipRecruiter, DailyAIJobs & more.</p>
+                      <span className="inline-block mt-2 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-xs text-slate-300">Discover</span>
+                    </div>
+                  </div>
+                </Link>
+                <Link
+                  href="/job_tracker"
+                  className="group rounded-xl border border-slate-600 bg-slate-800/50 p-5 hover:border-sky-500/50 hover:bg-slate-800/70 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30">
+                      <span className="text-lg">📌</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-100">Job Tracker</span>
+                      <p className="text-xs text-slate-400 mt-1">Track applications and status in one place.</p>
+                      <span className="inline-block mt-2 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-xs text-slate-300">Track</span>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            </section>
           </div>
         </div>
       </div>
