@@ -186,7 +186,7 @@ export default function MatchesWrapper({ initialMatches }: Props) {
       setAgentStatus(null);
       if (list.length === 0) {
         setError(
-          "No jobs found for this search. Indeed may have returned no results—try a different role or location, or check backend logs."
+          "No jobs found for this search. Try a different role or location, or check backend logs."
         );
       }
     } catch (e) {

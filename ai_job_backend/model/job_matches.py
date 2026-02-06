@@ -19,7 +19,7 @@ def get_candidate_jobs_for_user(
 ) -> Dict[str, Any]:
     """
     Get user profile from DB (preferences: skills, experience, interests) and
-    fetch candidate jobs from discover (Indeed) using profile as query/location.
+    fetch candidate jobs from discover (ZipRecruiter) using profile as query/location.
 
     Returns:
         {"profile": {...}, "jobs": [...], "query": "...", "location": "..."}
@@ -36,10 +36,10 @@ def get_candidate_jobs_for_user(
     result = discover_jobs(query=query, location=location, max_results=max_jobs)
     jobs = result.get("jobs") or []
 
-    # Fallback: if Indeed returns no results (e.g. block, strict location, or HTML change), try broader search
+    # Fallback: if ZipRecruiter returns no results, try broader search
     if not jobs:
         fallback_query = "software engineer" if query != "software engineer" else "developer"
-        logger.info("Indeed returned 0 jobs for query=%r location=%r; trying fallback query=%r", query, location, fallback_query)
+        logger.info("ZipRecruiter returned 0 jobs for query=%r location=%r; trying fallback query=%r", query, location, fallback_query)
         fallback = discover_jobs(query=fallback_query, location="", max_results=max_jobs)
         jobs = fallback.get("jobs") or []
         if jobs:
@@ -93,7 +93,7 @@ def rank_jobs_for_user(
         reasoning = (
             f"No jobs found for your profile. "
             f"Search used: \"{query_used}\" in \"{location_used}\". "
-            "Indeed may be blocking automated requests, or the search returned no listings. "
+            "ZipRecruiter may have returned no listings. "
             "Try updating your preferences (roles/location) or try again later."
         )
         logger.warning("rank_jobs_for_user: no jobs from discover (query=%s, location=%s)", query_used, location_used)
@@ -107,9 +107,30 @@ def rank_jobs_for_user(
         }
     try:
         rank_result = rank_jobs_with_reasoning(profile, jobs, max_results=max_ranked)
+        ranked_jobs = rank_result.get("ranked_jobs") or []
+        reasoning = rank_result.get("reasoning") or ""
+        # If LLM returned no ranked jobs but we have discoveries, pass them through so frontend shows them
+        if not ranked_jobs and jobs:
+            logger.info("Ranker returned 0 jobs; passing through %d discovered jobs so frontend can display them", len(jobs))
+            ranked_jobs = [
+                {
+                    "rank": i,
+                    "job_index": i - 1,
+                    "title": j.get("title") or "Job",
+                    "company": j.get("company") or "",
+                    "url": j.get("url") or j.get("source_url") or "",
+                    "snippet": j.get("snippet") or j.get("description") or "",
+                    "location": j.get("location") or "",
+                    "explanation": "",
+                    "score": None,
+                }
+                for i, j in enumerate(jobs[:max_ranked], 1)
+            ]
+            if not reasoning:
+                reasoning = f"Showing {len(ranked_jobs)} jobs from ZipRecruiter (ranking skipped)."
         return {
-            "ranked_jobs": rank_result.get("ranked_jobs") or [],
-            "reasoning": rank_result.get("reasoning") or "",
+            "ranked_jobs": ranked_jobs,
+            "reasoning": reasoning,
             "profile_summary": profile,
             "query": out.get("query") or "",
             "location": out.get("location") or "",
@@ -117,6 +138,31 @@ def rank_jobs_for_user(
         }
     except Exception as e:
         logger.exception("rank_jobs_for_user failed")
+        # On ranker failure, still return discovered jobs so frontend can show them
+        if jobs:
+            logger.info("Passing through %d discovered jobs after ranker error", len(jobs))
+            ranked_jobs = [
+                {
+                    "rank": i,
+                    "job_index": i - 1,
+                    "title": j.get("title") or "Job",
+                    "company": j.get("company") or "",
+                    "url": j.get("url") or j.get("source_url") or "",
+                    "snippet": j.get("snippet") or j.get("description") or "",
+                    "location": j.get("location") or "",
+                    "explanation": "",
+                    "score": None,
+                }
+                for i, j in enumerate(jobs[:max_ranked], 1)
+            ]
+            return {
+                "ranked_jobs": ranked_jobs,
+                "reasoning": f"Showing discovered jobs (ranking failed: {e}).",
+                "profile_summary": profile,
+                "query": out.get("query") or "",
+                "location": out.get("location") or "",
+                "error": None,
+            }
         return {
             "ranked_jobs": [],
             "reasoning": "",

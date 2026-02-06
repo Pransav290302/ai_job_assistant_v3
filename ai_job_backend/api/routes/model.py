@@ -228,7 +228,7 @@ async def job_discover(
 ) -> Dict:
     """
     GET /api/job/discover?q=software+engineer&location=remote&max_results=20
-    Discover new jobs from Indeed matching query and location (for daily matching jobs).
+    Discover new jobs from ZipRecruiter matching query and location.
     Use user profile roles/skills as q for personalized results.
     """
     try:
@@ -258,7 +258,7 @@ async def scrape_job(request: Request, body: ScrapeJobRequest) -> Dict:
     """
     try:
         if not body.job_url or not body.job_url.strip():
-            raise HTTPException(status_code=400, detail="Provide job_url (Indeed or Glassdoor)")
+            raise HTTPException(status_code=400, detail="Provide job_url")
         logger.info(f"Job scraping request for: {body.job_url}")
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
