@@ -161,8 +161,8 @@ export default function MatchesWrapper({ initialMatches }: Props) {
         throw new Error(msg);
       }
       setAgentStatus("Ranking results…");
-      const jobs: unknown[] = Array.isArray(data.jobs) ? data.jobs : [];
-      const list: JobListing[] = jobs.map((j: Record<string, unknown>, i: number) =>
+      const jobs: Record<string, unknown>[] = Array.isArray(data.jobs) ? data.jobs : [];
+      const list: JobListing[] = jobs.map((j, i) =>
         discoverJobToListing(
           {
             title: String(j.title ?? "Job"),
