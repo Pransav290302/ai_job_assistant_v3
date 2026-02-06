@@ -131,6 +131,11 @@ export default function MatchesWrapper({ initialMatches }: Props) {
           }
           return;
         }
+        if (rankData.error) {
+          setError(rankData.error);
+          setAgentStatus(null);
+          return;
+        }
       }
 
       let query = "software engineer";

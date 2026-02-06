@@ -48,6 +48,11 @@ PG_USER=postgres
 PG_PASSWORD=your_postgres_password_here
 PG_DATABASE=ai_job_assistant
 
+# Job discovery fallbacks: when Indeed returns 0, we try Glassdoor and ZipRecruiter.
+# Optional: Adzuna API (free tier) - https://developer.adzuna.com/signup
+# ADZUNA_APP_ID=your_app_id
+# ADZUNA_APP_KEY=your_app_key
+
 # Supabase (required for LLM/DeepSeek R1 to fetch user saved preferences)
 # Used by: /api/job/rank-for-user, agent get_user_profile tool.
 # Uncomment and set in .env so profile_lookup can read profiles + user_preferences from Supabase.

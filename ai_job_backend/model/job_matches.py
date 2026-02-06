@@ -35,6 +35,18 @@ def get_candidate_jobs_for_user(
 
     result = discover_jobs(query=query, location=location, max_results=max_jobs)
     jobs = result.get("jobs") or []
+
+    # Fallback: if Indeed returns no results (e.g. block, strict location, or HTML change), try broader search
+    if not jobs:
+        fallback_query = "software engineer" if query != "software engineer" else "developer"
+        logger.info("Indeed returned 0 jobs for query=%r location=%r; trying fallback query=%r", query, location, fallback_query)
+        fallback = discover_jobs(query=fallback_query, location="", max_results=max_jobs)
+        jobs = fallback.get("jobs") or []
+        if jobs:
+            result = fallback
+            query = fallback_query
+            location = ""
+
     return {
         "profile": profile,
         "jobs": jobs,
@@ -76,12 +88,21 @@ def rank_jobs_for_user(
             "error": out["error"],
         }
     if not jobs:
+        query_used = out.get("query") or ""
+        location_used = out.get("location") or "(any)"
+        reasoning = (
+            f"No jobs found for your profile. "
+            f"Search used: \"{query_used}\" in \"{location_used}\". "
+            "Indeed may be blocking automated requests, or the search returned no listings. "
+            "Try updating your preferences (roles/location) or try again later."
+        )
+        logger.warning("rank_jobs_for_user: no jobs from discover (query=%s, location=%s)", query_used, location_used)
         return {
             "ranked_jobs": [],
-            "reasoning": "No jobs found for your profile. Try updating preferences or location.",
+            "reasoning": reasoning,
             "profile_summary": profile,
-            "query": out.get("query") or "",
-            "location": out.get("location") or "",
+            "query": query_used,
+            "location": location_used,
             "error": None,
         }
     try:
