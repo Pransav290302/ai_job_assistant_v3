@@ -34,6 +34,10 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 ## Environment
 - Frontend: `NEXT_PUBLIC_API_URL` points to FastAPI base URL.
 - Backend: `PG_*` vars for Postgres, `AUTH_SECRET_KEY`, `AUTH_ALGORITHM`, and any AI provider keys.
+- **LLM (OpenAI-compatible):** `OPENAI_API_KEY`, `OPENAI_MODEL`; optional `OPENAI_BASE_URL` for Azure/other providers.
+
+### Using Azure AI Foundry + DeepSeek R1 (no-cost with Azure $200 credit)
+Set `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and `OPENAI_MODEL=DeepSeek-R1` in `ai_job_backend/.env` after deploying DeepSeek R1 in [Microsoft Foundry](https://ai.azure.com). Step-by-step: **[AZURE_DEEPSEEK_SETUP.md](AZURE_DEEPSEEK_SETUP.md)**.
 
 ## Running locally
 ```bash

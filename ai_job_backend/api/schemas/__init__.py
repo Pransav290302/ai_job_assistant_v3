@@ -14,6 +14,17 @@ class UserCreate(BaseModel):
     password: str
 
 
+class UserResponse(BaseModel):
+    """User profile (no password). For GET /api/users/{userId}."""
+
+    id: int
+    email: str
+    full_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

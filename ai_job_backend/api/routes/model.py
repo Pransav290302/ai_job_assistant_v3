@@ -20,6 +20,8 @@ from model.api_integration import (
     generate_answer_endpoint,
     scrape_job_description_endpoint,
 )
+from model.job_discovery import discover_jobs
+from model.job_matches import rank_jobs_for_user as rank_jobs_for_user_impl
 from model.utils.config import get_config
 
 # Load environment variables from .env file
@@ -82,7 +84,7 @@ async def analyze_resume(req: Request, request: ResumeAnalysisRequest) -> Dict:
     Request body:
     {
         "resume_text": "User's resume text...",
-        "job_url": "https://linkedin.com/jobs/..."
+        "job_url": "https://indeed.com/viewjob?jk=..."
     }
     """
     try:
@@ -127,7 +129,7 @@ async def generate_answer(req: Request, request: GenerateAnswerRequest) -> Dict:
             "education": "...",
             "additional_info": "..."
         },
-        "job_url": "https://linkedin.com/jobs/..."
+        "job_url": "https://indeed.com/viewjob?jk=..."
     }
     """
     try:
@@ -176,6 +178,72 @@ async def extract_resume_profile(req: Request, request: ExtractResumeRequest) ->
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class RankJobsForUserRequest(BaseModel):
+    """Request body for POST /api/job/rank-for-user."""
+
+    user_id: str = Field(..., min_length=1, max_length=64, description="Supabase auth user UUID")
+    max_jobs: int = Field(20, ge=1, le=50, description="Max candidate jobs to fetch from discover")
+    max_ranked: int = Field(15, ge=1, le=30, description="Max ranked jobs to return from DeepSeek R1")
+
+
+@router.post("/job/rank-for-user")
+@limiter.limit("10/minute")
+async def job_rank_for_user(request: Request, body: RankJobsForUserRequest) -> Dict:
+    """
+    POST /api/job/rank-for-user
+    Uses profile from preferences DB (skills, experience, interests), fetches candidate jobs
+    (from discover), then DeepSeek R1 reasons and returns ranked jobs + explanations.
+
+    Body: { "user_id": "uuid", "max_jobs": 20, "max_ranked": 15 }
+    """
+    try:
+        if not get_config().OPENAI_API_KEY:
+            raise HTTPException(status_code=503, detail="OPENAI_API_KEY not set. LLM required for ranking.")
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: rank_jobs_for_user_impl(
+                user_id=body.user_id,
+                max_jobs=body.max_jobs,
+                max_ranked=body.max_ranked,
+            ),
+        )
+        if result.get("error"):
+            raise HTTPException(status_code=500, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Job rank-for-user error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/job/discover")
+@limiter.limit("20/minute")
+async def job_discover(
+    request: Request,
+    q: str = "software engineer",
+    location: str = "",
+    max_results: int = 20,
+) -> Dict:
+    """
+    GET /api/job/discover?q=software+engineer&location=remote&max_results=20
+    Discover new jobs from Indeed matching query and location (for daily matching jobs).
+    Use user profile roles/skills as q for personalized results.
+    """
+    try:
+        max_results = min(max(1, max_results), 50)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: discover_jobs(query=q or "jobs", location=location or "", max_results=max_results),
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Job discover error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/job/scrape")
 @limiter.limit("15/minute")
 async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
@@ -185,12 +253,12 @@ async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
     
     Request body:
     {
-        "job_url": "https://linkedin.com/jobs/..."
+        "job_url": "https://indeed.com/viewjob?jk=..."
     }
     """
     try:
         if not request.job_url or not request.job_url.strip():
-            raise HTTPException(status_code=400, detail="Provide job_url (LinkedIn or Glassdoor)")
+            raise HTTPException(status_code=400, detail="Provide job_url (Indeed or Glassdoor)")
         logger.info(f"Job scraping request for: {request.job_url}")
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(

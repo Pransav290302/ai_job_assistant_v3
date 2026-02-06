@@ -30,12 +30,23 @@ export default function Personal({ userId, value, onChange }: Props) {
       return;
     }
     setSaving(true);
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+      first_name: value.first_name ?? null,
+      last_name: value.last_name ?? null,
+      email: value.email ?? null,
+      phone: value.phone ?? null,
+      location: value.location ?? null,
+      linkedin_url: value.linkedin_url ?? null,
+      education_summary: value.education_summary ?? null,
+      work_history_summary: value.work_history_summary ?? null,
+      expected_salary: value.expected_salary ?? null,
+      availability: value.availability ?? null,
+    };
     const { error } = await supabaseClient
       .from("user_personal_info")
-      .upsert(
-        { user_id: userId, ...value, updated_at: new Date().toISOString() },
-        { onConflict: "user_id" }
-      );
+      .upsert(row, { onConflict: "user_id" });
     setSaving(false);
     if (error) {
       alert(error.message);
@@ -99,6 +110,52 @@ export default function Personal({ userId, value, onChange }: Props) {
                 className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
                 value={value.location ?? ""}
                 onChange={(e) => updateField("location", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">LinkedIn URL</label>
+              <input
+                type="url"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                value={value.linkedin_url ?? ""}
+                onChange={(e) => updateField("linkedin_url", e.target.value)}
+                placeholder="https://linkedin.com/in/..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400">Education summary</label>
+              <textarea
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm min-h-[80px]"
+                value={value.education_summary ?? ""}
+                onChange={(e) => updateField("education_summary", e.target.value)}
+                placeholder="Degree, institution, year..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400">Work history summary</label>
+              <textarea
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm min-h-[80px]"
+                value={value.work_history_summary ?? ""}
+                onChange={(e) => updateField("work_history_summary", e.target.value)}
+                placeholder="Key roles and experience..."
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Expected salary (optional)</label>
+              <input
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                value={value.expected_salary ?? ""}
+                onChange={(e) => updateField("expected_salary", e.target.value)}
+                placeholder="e.g. 120k"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400">Availability</label>
+              <input
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                value={value.availability ?? ""}
+                onChange={(e) => updateField("availability", e.target.value)}
+                placeholder="e.g. 2 weeks notice"
               />
             </div>
             <div>

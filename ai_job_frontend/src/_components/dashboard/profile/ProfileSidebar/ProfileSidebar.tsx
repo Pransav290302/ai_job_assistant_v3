@@ -1,8 +1,8 @@
 "use client";
 
 type Props = {
-  activeTab: "profile" | "personal" | "preferences";
-  onTabChange: (tab: "profile" | "personal" | "preferences") => void;
+  activeTab: "profile" | "autofill" | "personal" | "preferences";
+  onTabChange: (tab: "profile" | "autofill" | "personal" | "preferences") => void;
 };
 
 export default function ProfileSidebar({ activeTab, onTabChange }: Props) {
@@ -22,6 +22,21 @@ export default function ProfileSidebar({ activeTab, onTabChange }: Props) {
             Profile
           </span>
           <span className="text-xs text-sky-100">Documents + overview</span>
+        </button>
+
+        <button
+          onClick={() => onTabChange("autofill")}
+          className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "autofill"
+              ? "bg-sky-600 text-white shadow-sm shadow-sky-900/40"
+              : "bg-slate-900 border border-slate-700 hover:border-slate-500"
+          }`}
+        >
+          <span className="flex items-center gap-3">
+            <span className="text-base">📋</span>
+            For autofill
+          </span>
+          <span className="text-xs text-slate-400">Copy fields for forms</span>
         </button>
 
         <button

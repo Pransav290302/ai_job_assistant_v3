@@ -41,3 +41,11 @@ services:
       # Required for LinkedIn/Glassdoor scraping - get token at browserless.io (6 hrs free/mo)
       - key: BROWSERLESS_URL
         sync: false
+      # Supabase: required for /api/job/rank-for-user and agent profile lookup
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Azure/DeepSeek: optional override (defaults in config); set if not using OPENAI_BASE_URL from .env
+      - key: OPENAI_BASE_URL
+        sync: false

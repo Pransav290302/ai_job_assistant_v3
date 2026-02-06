@@ -5,6 +5,11 @@ export type PersonalInfo = {
   email?: string | null;
   phone?: string | null;
   location?: string | null;
+  linkedin_url?: string | null;
+  education_summary?: string | null;
+  work_history_summary?: string | null;
+  expected_salary?: string | null;
+  availability?: string | null;
   address1?: string | null;
   address2?: string | null;
   address3?: string | null;
@@ -36,4 +41,23 @@ export type JobPreferences = {
   industries_avoid?: string[] | null;
   skills_prefer?: string[] | null;
   skills_avoid?: string[] | null;
+  /** Set by server; used for "update once per day" limit. */
+  updated_at?: string | null;
+};
+
+/** Autofill-friendly profile for job application forms. From GET /api/profile/autofill */
+export type AutofillProfile = {
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  linkedin_url: string;
+  location: string;
+  current_title: string;
+  skills: string;
+  education_summary: string;
+  work_history_summary: string;
+  expected_salary: string;
+  availability: string;
 };

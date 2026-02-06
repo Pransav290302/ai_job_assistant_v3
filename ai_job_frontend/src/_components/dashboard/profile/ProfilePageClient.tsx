@@ -1,11 +1,11 @@
 "use client";
 
-
 import { useMemo, useState } from "react";
 import ProfileSidebar from "./ProfileSidebar/ProfileSidebar";
 import Profile from "./ProfileSidebar/Profile";
 import Personal from "./ProfileSidebar/Personal";
 import Preferences from "./ProfileSidebar/Preferences";
+import AutofillSection from "./AutofillSection";
 import ProfileHeader from "./profileHeader/ProfileHeader";
 import { PersonalInfo, JobPreferences } from "@/types/profile";
 
@@ -19,7 +19,7 @@ export default function ProfilePageClient({ userId: initialUserId, initialInfo, 
   const [userId] = useState<string | null>(initialUserId);
   const [info, setInfo] = useState<PersonalInfo>(initialInfo);
   const [jobPrefs, setJobPrefs] = useState<JobPreferences>(initialJobPrefs);
-  const [activeTab, setActiveTab] = useState<"profile" | "personal" | "preferences">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "autofill" | "personal" | "preferences">("profile");
 
   const initials = useMemo(() => {
     const first = info.first_name?.trim() ?? "";
@@ -51,6 +51,7 @@ export default function ProfilePageClient({ userId: initialUserId, initialInfo, 
                 <Profile userId={userId} value={info} onChange={setInfo} />
               </div>
             )}
+            {activeTab === "autofill" && <AutofillSection />}
             {activeTab === "personal" && (
               <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
                 <Personal userId={userId} value={info} onChange={setInfo} />

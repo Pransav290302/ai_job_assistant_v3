@@ -115,6 +115,68 @@ CREATE POLICY "Users can insert own preferences" ON public.user_preferences FOR 
 CREATE POLICY "Users can update own preferences" ON public.user_preferences FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 ```
 
+If you see **"Could not find the table 'public.profiles' in the schema cache"**:
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard) → your project → **SQL Editor**
+2. Run the migration: `supabase/migrations/002_create_profiles.sql` (or copy the SQL below):
+
+```sql
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email text,
+  first_name text,
+  last_name text,
+  provider text DEFAULT 'credentials',
+  avatar_url text,
+  onboarded boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, first_name, last_name, provider)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'first_name', split_part(COALESCE(new.raw_user_meta_data->>'full_name', ''), ' ', 1)),
+    COALESCE(new.raw_user_meta_data->>'last_name', nullif(trim(substring((COALESCE(new.raw_user_meta_data->>'full_name', '') || ' ') from position(' ' in (COALESCE(new.raw_user_meta_data->>'full_name', '') || ' ')) + 1)), '')),
+    COALESCE(new.raw_app_meta_data->>'provider', 'credentials')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+## Storage buckets (Documents upload)
+
+If you see **"Upload failed: Bucket not found"** on the Documents page:
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard) → your project → **SQL Editor**
+2. Run the migration: `supabase/migrations/004_create_storage_buckets.sql` (it creates buckets `resumes` and `cover_letter` and RLS policies).
+
+If the `INSERT INTO storage.buckets` part fails (some projects treat storage as read-only), create the buckets manually:
+
+1. In the Dashboard go to **Storage**
+2. Click **New bucket**
+3. Create a bucket named **resumes**, set it to **Private**, then create
+4. Create another bucket named **cover_letter**, **Private**
+5. Back in **SQL Editor**, run only the four `CREATE POLICY` statements from `004_create_storage_buckets.sql` (the part from `CREATE POLICY "Users can upload own resume or cover letter"` through the last policy)
+
+After the buckets and policies exist, resume and cover letter uploads on the Documents page will work.
+
 ## Troubleshooting
 
 - **Error: "Your project's URL and Key are required"**

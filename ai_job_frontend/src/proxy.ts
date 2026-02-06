@@ -100,9 +100,14 @@ export default async function middleware(req: NextRequest) {
   const isLoggedIn = !!user;
 
   /**
-   * Check user metadata for onboarding status.
+   * Onboarding: ask preferences only once (new signups). Use profiles.onboarded as source of truth
+   * so returning users go straight to dashboard; user_metadata is fallback for backwards compatibility.
    */
-  const hasCompletedOnboarding = user?.user_metadata?.onboarded === true;
+  let hasCompletedOnboarding = user?.user_metadata?.onboarded === true;
+  if (isLoggedIn && user?.id && !hasCompletedOnboarding) {
+    const { data: profile } = await supabase.from("profiles").select("onboarded").eq("id", user.id).single();
+    hasCompletedOnboarding = profile?.onboarded === true;
+  }
 
   // --- ACCESS CONTROL & REDIRECT LOGIC (non-public only) ---
 
@@ -122,6 +127,14 @@ export default async function middleware(req: NextRequest) {
    */
   if (isLoggedIn && !hasCompletedOnboarding && !isPublicPath && !isOnboardingPath && !isApiPath) {
     return NextResponse.redirect(new URL("/preferences", nextUrl));
+  }
+
+  /**
+   * RULE 2b: Already onboarded — send straight to dashboard (preferences only once).
+   * If a returning user hits /preferences, redirect to dashboard.
+   */
+  if (isLoggedIn && hasCompletedOnboarding && isOnboardingPath) {
+    return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   /**

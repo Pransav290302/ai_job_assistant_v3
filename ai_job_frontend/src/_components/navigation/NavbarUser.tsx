@@ -5,6 +5,7 @@ import { UserDropdown } from "./UserDropdown";
 const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/about", label: "About" },
+  { href: "/assistant", label: "Assistant" },
   { href: "/matches", label: "Matches" },
   { href: "/jobs", label: "Jobs" },
   { href: "/job_tracker", label: "Job Tracker" },

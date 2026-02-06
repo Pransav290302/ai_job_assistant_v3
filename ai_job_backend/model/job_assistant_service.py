@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from model.job_scraper import JobScraper, scrape_job_description
 from model.resume_analyzer import analyze_resume_and_jd
 from model.answer_generator import generate_tailored_answer
+from model.utils.config import get_config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -24,27 +25,25 @@ class JobAssistantService:
     This is the primary interface for backend integration.
     """
     
-    def __init__(self, use_selenium: bool = False, use_playwright: bool = True, llm_model: str = "gpt-3.5-turbo",
+    def __init__(self, use_selenium: bool = False, use_playwright: bool = True,
                  llm_api_key: Optional[str] = None, llm_base_url: Optional[str] = None):
         """
-        Initialize the job assistant service.
+        Initialize the job assistant service. Uses Azure ML DeepSeek-R1.
         
         Args:
             use_selenium: Whether to use Selenium for scraping
             use_playwright: Whether to use Playwright (works on Render free tier)
-            llm_model: Model name (default: gpt-3.5-turbo)
             llm_api_key: API key (optional, reads from env if not provided)
-            llm_base_url: Base URL for API (optional, uses OpenAI default if not provided)
+            llm_base_url: Base URL for API (optional)
         """
         self.scraper = JobScraper(
             use_selenium=False,
             use_playwright=use_playwright,
             scraper_api_key=None,
         )
-        self.llm_model = llm_model or os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
         # Use provided API key or get from environment
         self.llm_api_key = llm_api_key or os.getenv("OPENAI_API_KEY")
-        self.llm_base_url = llm_base_url or os.getenv("OPENAI_BASE_URL")
+        self.llm_base_url = llm_base_url or get_config().get_base_url()
         
         # Validate API key is available
         if not self.llm_api_key:
@@ -93,7 +92,6 @@ class JobAssistantService:
             analysis = analyze_resume_and_jd(
                 resume_text=resume_text,
                 job_description=job_description,
-                model_name=self.llm_model,
                 api_key=self.llm_api_key,
                 base_url=self.llm_base_url
             )
@@ -170,7 +168,6 @@ class JobAssistantService:
                 question=question,
                 user_profile=user_profile,
                 job_description=job_description,
-                model_name=self.llm_model,
                 api_key=self.llm_api_key,
                 base_url=self.llm_base_url
             )

@@ -27,6 +27,9 @@ if use_sqlite and not database_url:
 elif database_url:
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
+    # Use pg8000 driver (pure Python, no C++ Build Tools on Windows).
+    if database_url.startswith("postgresql://") and "+" not in database_url.split("://")[0]:
+        database_url = database_url.replace("postgresql://", "postgresql+pg8000://", 1)
     SQLALCHEMY_DATABASE_URL = database_url
 else:
     pg_host = os.getenv("PG_HOST", "").strip()
@@ -57,8 +60,9 @@ else:
 
     # URL-encode password to handle special chars (@, :, /, etc.)
     safe_password = quote_plus(pg_password) if pg_password else ""
+    # Use pg8000 driver (pure Python, no C++ Build Tools on Windows).
     SQLALCHEMY_DATABASE_URL = (
-        f"postgresql://{pg_user}:{safe_password}@{pg_host}:{pg_port}/{pg_database}"
+        f"postgresql+pg8000://{pg_user}:{safe_password}@{pg_host}:{pg_port}/{pg_database}"
     )
 
 # Engine config

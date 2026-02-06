@@ -4,6 +4,7 @@ uvicorn[standard]==0.32.0
 python-multipart==0.0.17
 python-dotenv==1.0.1
 openai==1.55.3
+httpx>=0.27.0
 azure-ai-inference==1.0.0b4
 playwright==1.49.0
 playwright-stealth>=2.0.0
@@ -13,10 +14,19 @@ requests==2.32.3
 selenium==4.27.1
 webdriver-manager==4.0.2
 SQLAlchemy==2.0.29
-psycopg2-binary==2.9.9
+# Pure-Python PostgreSQL driver (no C++ Build Tools required on Windows).
+# Use postgresql+pg8000:// in DATABASE_URL or PG_*; see api/database/__init__.py.
+pg8000>=1.30.0
+# Optional: psycopg2-binary for environments with C compiler (e.g. Linux, Render).
+# pip install psycopg2-binary  # if you prefer psycopg2 and have Build Tools
 passlib[bcrypt]==1.7.4
 python-jose==3.3.0
 email-validator==2.3.0
 # Optional: For demo app (model/demo_app.py)
 flask==3.0.3
 flask-cors==4.0.1
+# Agent: perceive → reason → act (tools: scraper, profile DB, LLM).
+# Use smolagents without [openai] extra (openai pkg already above); newer smolagents dropped the extra.
+smolagents>=1.0.0
+# For get_user_profile tool (profile lookup from Supabase)
+supabase>=2.0.0

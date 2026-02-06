@@ -1,7 +1,7 @@
 """
 Production-grade Job Description Scraper
-Supports: ScraperAPI (recommended), Playwright, requests.
-Handles LinkedIn, Indeed, Greenhouse, Glassdoor, and generic sites.
+Supports: Indeed (easy, requests), Glassdoor (ScraperAPI/Playwright), Greenhouse, Lever.
+LinkedIn is not supported; use Indeed or Glassdoor.
 """
 
 import os
@@ -126,9 +126,43 @@ class JobScraper:
                 "nav", "header", "footer", ".apply-button",
             ],
         },
+        "lever": {
+            "content_selectors": [
+                "div.content",
+                "section.posting-page-description",
+                "div.posting-description",
+                "div[class*='content']",
+                "div.section-wrapper",
+            ],
+            "exclude_selectors": [
+                "nav", "header", "footer", ".posting-apply",
+                ".posting-header", "button", ".application-form",
+            ],
+        },
     }
 
-    JS_SITES = ("linkedin", "glassdoor")
+    # Common noise patterns removed from extracted text (nav, ads, footers)
+    NOISE_PATTERNS = [
+        r"Apply now\s*",
+        r"Save job\s*",
+        r"Share job\s*",
+        r"See more\s*",
+        r"See less\s*",
+        r"Easy apply\s*",
+        r"Sign in to save\s*",
+        r"© \d{4}.*?\.?\s*",
+        r"All rights reserved\.?\s*",
+        r"Privacy policy\s*",
+        r"Terms of (use|service)\s*",
+        r"Cookie policy\s*",
+        r"Follow us on\s*",
+        r"Connect with us\s*",
+        r"^\s*Home\s*\|\s*",
+        r"\s*Home\s*\|\s*Careers\s*\|\s*",
+        r"^\s*\[.*?\]\s*",  # [AD] or [Advertisement]
+    ]
+
+    JS_SITES = ("glassdoor",)  # Indeed, Greenhouse, Lever use requests (easy)
 
     def __init__(
         self,
@@ -160,15 +194,22 @@ class JobScraper:
             return "greenhouse"
         if "glassdoor.com" in domain:
             return "glassdoor"
+        if "lever.co" in domain or "jobs.lever.co" in domain:
+            return "lever"
         return "generic"
 
     def _clean_text(self, text: str) -> str:
+        """Remove navigation, ads, footer text, and normalize whitespace."""
         if not text:
             return ""
         text = re.sub(r"\s+", " ", text)
         text = text.strip()
-        text = re.sub(r"(?i)(apply now|save job|share job|see more|see less)", "", text)
-        return text.strip()
+        # Remove common noise patterns
+        for pat in self.NOISE_PATTERNS:
+            text = re.sub(pat, " ", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s+", " ", text)
+        text = text.strip()
+        return text
 
     def _extract_with_selectors(
         self,
@@ -338,26 +379,34 @@ class JobScraper:
         force_playwright: bool = False,
     ) -> Dict:
         """
-        Scrape job description. Uses BROWSERLESS_URL (Playwright) for LinkedIn/Glassdoor.
-        Priority: Playwright (Browserless) for JS sites → requests for Indeed/Greenhouse.
+        Scrape job description. Indeed/Greenhouse/Lever use requests; Glassdoor uses ScraperAPI or Playwright.
         """
         logger.info(f"Scraping: {url}")
         site = self._detect_site(url)
+        if site == "linkedin":
+            return {
+                "success": False,
+                "text": None,
+                "error": "LinkedIn is not supported. Use Indeed or Glassdoor job URLs.",
+                "url": url,
+            }
         needs_js = site in self.JS_SITES
 
-        # Indeed/Greenhouse: requests usually works
+        # Indeed/Greenhouse/Lever: requests usually works
         if not needs_js:
             text = self._scrape_with_requests(url)
             if text:
                 return {"success": True, "text": text, "method": "requests", "url": url}
 
-        # LinkedIn/Glassdoor: Playwright (BROWSERLESS_URL) only
+        # LinkedIn/Glassdoor: try ScraperAPI (JS render) first, then Playwright, then requests
+        if self.scraper_api_key:
+            text = self._scrape_with_scraper_api(url)
+            if text:
+                return {"success": True, "text": text, "method": "scraperapi", "url": url}
         if self.use_playwright:
             text = self._scrape_with_playwright(url)
             if text:
                 return {"success": True, "text": text, "method": "playwright", "url": url}
-
-        # Last resort: requests for JS sites (often login wall)
         text = self._scrape_with_requests(url)
         if text:
             return {"success": True, "text": text, "method": "requests", "url": url}
@@ -366,8 +415,8 @@ class JobScraper:
             "success": False,
             "text": None,
             "error": (
-                "Could not extract job description. Ensure BROWSERLESS_URL is set "
-                "(wss://chrome.browserless.io?token=YOUR_TOKEN). Or paste the job manually."
+                "Could not extract job description. Set one of: (1) SCRAPER_API_KEY (scraperapi.com, JS rendering), "
+                "(2) BROWSERLESS_URL (wss://chrome.browserless.io?token=YOUR_TOKEN). Or paste the job manually."
             ),
             "url": url,
         }
@@ -379,6 +428,13 @@ class JobScraper:
         self.session.close()
         if hasattr(self, "executor"):
             self.executor.shutdown(wait=False)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
 
 
 async def scrape_job_description_async(

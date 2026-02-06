@@ -4,10 +4,10 @@ import sys
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
-from openai import OpenAI
 from playwright.async_api import async_playwright
 
 from api import models
+from model.utils.config import get_config
 from api.dependencies import db_dependency, user_dependency
 from api.schemas import JobAnalysisRequest, JobAnalysisResponse
 
@@ -25,9 +25,9 @@ if not api_key:
         "Please create a .env file in ai_job_backend/ with OPENAI_API_KEY=your_key"
     )
 
-client = OpenAI(
+client = get_config().create_openai_client(
     api_key=api_key,
-    base_url=os.getenv("OPENAI_BASE_URL"),  # None = use OpenAI default
+    base_url=get_config().get_base_url(),
 )
 
 
@@ -62,7 +62,7 @@ async def analyze_job(
     # 2) Analyze (placeholder AI call)
     try:
         completion = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+            model=get_config().OPENAI_MODEL,
             messages=[
                 {
                     "role": "system",

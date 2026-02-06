@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { supabaseClient } from "@/_lib/supabaseClient";
+import { useMemo, useState } from "react";
 import { JobPreferences } from "@/types/profile";
+
+const PREFERENCES_UPDATE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type Props = {
   userId: string | null;
@@ -16,8 +17,30 @@ const stringToArray = (value: string) =>
     .map((v) => v.trim())
     .filter(Boolean);
 
+function canUpdatePreferences(updatedAt: string | null | undefined): boolean {
+  if (!updatedAt) return true;
+  const updated = new Date(updatedAt).getTime();
+  return Date.now() - updated >= PREFERENCES_UPDATE_COOLDOWN_MS;
+}
+
+function nextAvailableAt(updatedAt: string | null | undefined): Date | null {
+  if (!updatedAt) return null;
+  const updated = new Date(updatedAt).getTime();
+  return new Date(updated + PREFERENCES_UPDATE_COOLDOWN_MS);
+}
+
 export default function Preferences({ userId, value, onChange }: Props) {
   const [saving, setSaving] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+
+  const canUpdate = useMemo(
+    () => canUpdatePreferences(value.updated_at ?? null),
+    [value.updated_at]
+  );
+  const nextAt = useMemo(
+    () => nextAvailableAt(value.updated_at ?? null),
+    [value.updated_at]
+  );
 
   const updateField = (field: keyof JobPreferences, newValue: any) => {
     onChange({ ...value, [field]: newValue });
@@ -28,21 +51,50 @@ export default function Preferences({ userId, value, onChange }: Props) {
       alert("Please sign in to save your preferences.");
       return;
     }
-    setSaving(true);
-    const { error } = await supabaseClient.from("user_preferences").upsert(
-      {
-        user_id: userId,
-        ...value,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-    setSaving(false);
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Preferences saved");
+    if (!canUpdate) {
+      setRateLimitMessage(
+        nextAt
+          ? `You can update preferences once per day. Next update available at ${nextAt.toLocaleString()}.`
+          : "You can update preferences once per day."
+      );
+      return;
     }
+    setSaving(true);
+    setRateLimitMessage(null);
+    const res = await fetch("/api/profile/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        job_status: value.job_status ?? null,
+        expected_salary: value.expected_salary ?? null,
+        roles: value.roles ?? [],
+        role_values: value.role_values ?? [],
+        locations: value.locations ?? [],
+        work_modes: value.work_modes ?? [],
+        company_sizes: value.company_sizes ?? [],
+        industries_prefer: value.industries_prefer ?? [],
+        industries_avoid: value.industries_avoid ?? [],
+        skills_prefer: value.skills_prefer ?? [],
+        skills_avoid: value.skills_avoid ?? [],
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.status === 429) {
+      const nextAtStr = data.next_available_at
+        ? ` Next update at ${new Date(data.next_available_at).toLocaleString()}.`
+        : "";
+      setRateLimitMessage(
+        (data.error || "You can update preferences once per day. Job suggestions and LLM use this data.") + nextAtStr
+      );
+      return;
+    }
+    if (!res.ok) {
+      alert(data.error || "Failed to save preferences");
+      return;
+    }
+    onChange({ ...value, ...data });
+    alert("Preferences saved. You can change them again in 24 hours.");
   };
 
   return (
@@ -168,13 +220,21 @@ export default function Preferences({ userId, value, onChange }: Props) {
           <div />
         </div>
 
-        <div className="flex justify-end">
+        {rateLimitMessage && (
+          <p className="text-amber-400 text-sm mt-2">{rateLimitMessage}</p>
+        )}
+        {!canUpdate && nextAt && (
+          <p className="text-slate-400 text-sm mt-2">
+            Next update available at {nextAt.toLocaleString()}. Job suggestions and LLM depend on this data.
+          </p>
+        )}
+        <div className="flex justify-end mt-4">
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-60 transition-colors text-sm font-semibold"
+            disabled={saving || !canUpdate}
+            className="px-5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-sm font-semibold"
           >
-            {saving ? "Saving..." : "Save Preferences"}
+            {saving ? "Saving..." : !canUpdate ? "Update once per day" : "Save Preferences"}
           </button>
         </div>
       </div>

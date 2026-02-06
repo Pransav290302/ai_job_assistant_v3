@@ -1,16 +1,20 @@
 # Copy this file to .env and fill in your values
-# OpenAI API Configuration
+# Azure ML DeepSeek-R1 (hardcoded model, no OPENAI_MODEL needed)
 OPENAI_API_KEY=your_api_key_here
-OPENAI_MODEL=gpt-3.5-turbo
-# Optional: Use a different base URL if using OpenAI-compatible API
-# OPENAI_BASE_URL=https://api.openai.com/v1
+# Azure AI Foundry v1: https://YOUR-RESOURCE.services.ai.azure.com/openai/v1
+OPENAI_BASE_URL=https://YOUR-RESOURCE.services.ai.azure.com/openai/v1
+# If Azure returns 400/401, set api-version (e.g. 2024-08-01-preview or from Foundry docs)
+# OPENAI_API_VERSION=2024-08-01-preview
 
 # Scraper Configuration
 USE_SELENIUM=false
 USE_PLAYWRIGHT=true
 USE_STEALTH=true
 SELENIUM_HEADLESS=true
-# LinkedIn/Glassdoor - set BROWSERLESS_URL (free at browserless.io, 6 hrs/mo)
+# LinkedIn/Glassdoor - set ONE of these (or both; ScraperAPI tried first):
+# Option A: ScraperAPI (JS rendering, no browser) - https://www.scraperapi.com
+# SCRAPER_API_KEY=your_scraperapi_key
+# Option B: Browserless (free tier ~6 hrs/mo) - https://browserless.io
 # BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN
 
 # Logging Configuration
@@ -43,6 +47,12 @@ PG_PORT=5432
 PG_USER=postgres
 PG_PASSWORD=your_postgres_password_here
 PG_DATABASE=ai_job_assistant
+
+# Supabase (required for LLM/DeepSeek R1 to fetch user saved preferences)
+# Used by: /api/job/rank-for-user, agent get_user_profile tool.
+# Uncomment and set in .env so profile_lookup can read profiles + user_preferences from Supabase.
+# SUPABASE_URL=https://xxx.supabase.co
+# SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # Auth Configuration
 AUTH_SECRET_KEY=change-me-in-prod-secret-key-here

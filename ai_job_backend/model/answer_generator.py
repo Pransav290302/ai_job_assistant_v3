@@ -8,7 +8,8 @@ import os
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
-from openai import OpenAI
+
+from model.utils.config import get_config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,13 +23,12 @@ class AnswerGenerator:
     Acts as a career coach to help users write compelling responses.
     """
     
-    def __init__(self, model_name: str = "gpt-3.5-turbo", temperature: float = 0.7, 
+    def __init__(self, temperature: float = 0.7,
                  api_key: Optional[str] = None, base_url: Optional[str] = None):
         """
         Initialize the answer generator.
         
         Args:
-            model_name: Model to use (default: gpt-3.5-turbo)
             temperature: Sampling temperature (higher = more creative)
             api_key: API key (if None, reads from environment)
             base_url: Base URL for API (if None, uses OpenAI default)
@@ -41,11 +41,12 @@ class AnswerGenerator:
                 "OPENAI_API_KEY=your_api_key_here"
             )
         
-        self.client = OpenAI(
+        config = get_config()
+        self.client = config.create_openai_client(
             api_key=final_api_key,
-            base_url=base_url or os.getenv("OPENAI_BASE_URL"),  # None = use OpenAI default
+            base_url=base_url or config.get_base_url(),
         )
-        self.model_name = model_name
+        self.model_name = config.OPENAI_MODEL
         self.temperature = temperature
         
         self.system_prompt = """You are an expert career coach helping job applicants write compelling, 
@@ -122,7 +123,7 @@ Write a compelling, personalized answer that connects the user's background to t
 
 
 def generate_tailored_answer(question: str, user_profile: Dict, job_description: str,
-                            model_name: str = "gpt-3.5-turbo", api_key: Optional[str] = None,
+                            api_key: Optional[str] = None,
                             base_url: Optional[str] = None) -> str:
     """
     Convenience function for generating tailored answers.
@@ -131,12 +132,11 @@ def generate_tailored_answer(question: str, user_profile: Dict, job_description:
         question: The application question
         user_profile: Dictionary with user profile data
         job_description: The job description text
-        model_name: Model to use (default: gpt-3.5-turbo)
         api_key: API key (optional, reads from environment if not provided)
         base_url: Base URL for API (optional, uses OpenAI default if not provided)
         
     Returns:
         Generated answer text
     """
-    generator = AnswerGenerator(model_name=model_name, api_key=api_key, base_url=base_url)
+    generator = AnswerGenerator(api_key=api_key, base_url=base_url)
     return generator.generate(question, user_profile, job_description)

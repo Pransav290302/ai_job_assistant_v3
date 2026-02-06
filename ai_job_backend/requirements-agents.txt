@@ -1,0 +1,6 @@
+# Optional: Agent frameworks for the Job Assistant
+# Install with: pip install -r requirements-agents.txt
+# See AGENT_FRAMEWORKS.md for Google ADK and SmolAgents.
+
+# SmolAgents + OpenAI-compatible API (works with Azure/DeepSeek)
+smolagents[openai]>=1.0.0

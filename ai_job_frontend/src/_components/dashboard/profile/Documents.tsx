@@ -55,6 +55,20 @@ export default function Documents({ userId, value, onChange }: Props) {
   }, [value.resume_url, value.cover_letter_url]);
 
   const uploadDocument = async (file: File, field: "resume_url" | "cover_letter_url") => {
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/88bd7728-2fcf-46a3-a02b-6112ce54d49d", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "Documents.tsx:uploadDocument:entry",
+        message: "uploadDocument called",
+        data: { field },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        hypothesisId: "A",
+      }),
+    }).catch(() => {});
+    // #endregion
     const {
       data: { user },
     } = await supabaseClient.auth.getUser();
@@ -75,11 +89,39 @@ export default function Documents({ userId, value, onChange }: Props) {
       baseName.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "file";
     const path = `${currentUid}-${Date.now()}-${safeBase}.${ext}`;
 
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/88bd7728-2fcf-46a3-a02b-6112ce54d49d", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "Documents.tsx:uploadDocument:beforeStorageCall",
+        message: "calling storage.from(bucket).upload",
+        data: { bucketName },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        hypothesisId: "A",
+      }),
+    }).catch(() => {});
+    // #endregion
     const { error: uploadError } = await supabaseClient.storage
       .from(bucketName)
       .upload(path, file, { upsert: true });
 
     if (uploadError) {
+      // #region agent log
+      fetch("http://127.0.0.1:7242/ingest/88bd7728-2fcf-46a3-a02b-6112ce54d49d", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: "Documents.tsx:uploadDocument:uploadError",
+          message: "Supabase storage error",
+          data: { bucketName, errorMessage: uploadError.message, errorName: uploadError.name },
+          timestamp: Date.now(),
+          sessionId: "debug-session",
+          hypothesisId: "A",
+        }),
+      }).catch(() => {});
+      // #endregion
       isResume ? setUploadingResume(false) : setUploadingCover(false);
       alert(`Upload failed: ${uploadError.message}`);
       return;

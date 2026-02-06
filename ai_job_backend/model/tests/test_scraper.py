@@ -17,6 +17,7 @@ class TestJobScraper(unittest.TestCase):
         self.assertEqual(scraper._detect_site("https://indeed.com/viewjob?jk=123"), "indeed")
         self.assertEqual(scraper._detect_site("https://boards.greenhouse.io/company/jobs/123"), "greenhouse")
         self.assertEqual(scraper._detect_site("https://glassdoor.com/job-listing/123"), "glassdoor")
+        self.assertEqual(scraper._detect_site("https://jobs.lever.co/company/abc"), "lever")
         self.assertEqual(scraper._detect_site("https://unknown-site.com/job"), "generic")
     
     def test_clean_text(self):

@@ -10,7 +10,8 @@ import re
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
-from openai import OpenAI
+
+from model.utils.config import get_config
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,19 +22,17 @@ logger = logging.getLogger(__name__)
 def analyze_resume_and_jd(
     resume_text: str,
     job_description: str,
-    model_name: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None
 ) -> Dict:
     """
-    Analyze resume against job description and provide match score and suggestions.
+    Analyze resume against job description. Uses Azure ML DeepSeek-R1.
     
     Args:
         resume_text: User's resume text
         job_description: Job description text
-        model_name: Model to use (default: gpt-3.5-turbo)
         api_key: API key (optional, reads from environment if not provided)
-        base_url: Base URL for API (optional, uses OpenAI default if not provided)
+        base_url: Base URL for API (optional)
         
     Returns:
         Dictionary with analysis results including:
@@ -54,11 +53,11 @@ def analyze_resume_and_jd(
                 "OPENAI_API_KEY=your_api_key_here"
             )
         
-        client = OpenAI(
+        config = get_config()
+        client = config.create_openai_client(
             api_key=final_api_key,
-            base_url=base_url or os.getenv("OPENAI_BASE_URL"),  # None = use OpenAI default
+            base_url=base_url or config.get_base_url(),
         )
-        
         system_prompt = """You are an expert resume reviewer and career advisor. Analyze a resume against a job description and provide:
 1. A match score from 0-100
 2. Specific strengths that align with the job
@@ -85,7 +84,7 @@ Provide a JSON response with:
 Format your response as valid JSON only."""
         
         completion = client.chat.completions.create(
-            model=model_name,
+            model=config.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

@@ -104,7 +104,7 @@ export default function PreferencesPage() {
       }),
     });
 
-    router.push("/dashboard");
+    router.push("/dashboard/matches?from=onboarding");
   };
 
   const handleSignOutClick = async () => {

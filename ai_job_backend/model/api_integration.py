@@ -41,9 +41,8 @@ def get_service() -> JobAssistantService:
         _service_instance = JobAssistantService(
             use_selenium=config.USE_SELENIUM,
             use_playwright=config.USE_PLAYWRIGHT,
-            llm_model=config.OPENAI_MODEL,
             llm_api_key=config.OPENAI_API_KEY,
-            llm_base_url=config.OPENAI_BASE_URL
+            llm_base_url=config.get_base_url()
         )
     
     return _service_instance
@@ -152,22 +151,28 @@ def extract_resume_profile_endpoint(resume_text: str) -> Dict:
 
 def scrape_job_description_endpoint(job_url: str) -> Dict:
     """
-    Scrape job description from LinkedIn or Glassdoor URL.
-    Requires BROWSERLESS_URL for JS rendering.
+    Scrape job description from Indeed or Glassdoor URL (LinkedIn not supported).
     """
     logger.info(f"Scrape job description endpoint called for: {job_url}")
     
     try:
         config = get_config()
-        # Use BROWSERLESS_URL only for LinkedIn/Glassdoor (remote Chrome via browserless.io)
         url_lower = job_url.lower()
-        needs_js = "linkedin.com" in url_lower or "glassdoor.com" in url_lower
-        if needs_js and not config.BROWSERLESS_URL:
+        if "linkedin.com" in url_lower:
+            return {
+                "success": False,
+                "error": "LinkedIn is not supported. Use Indeed or Glassdoor job URLs.",
+                "url": job_url,
+            }
+        needs_js = "glassdoor.com" in url_lower
+        scraper_key = os.getenv("SCRAPER_API_KEY") or getattr(config, "SCRAPER_API_KEY", None)
+        has_js_option = config.BROWSERLESS_URL or scraper_key
+        if needs_js and not has_js_option:
             return {
                 "success": False,
                 "error": (
-                    "LinkedIn/Glassdoor require BROWSERLESS_URL. Set it in Render → Environment: "
-                    "wss://chrome.browserless.io?token=YOUR_TOKEN (free at browserless.io)"
+                    "Glassdoor needs JS rendering. Set SCRAPER_API_KEY (scraperapi.com) or "
+                    "BROWSERLESS_URL (wss://chrome.browserless.io?token=YOUR_TOKEN). Or use Indeed URLs."
                 ),
                 "url": job_url,
             }
@@ -175,7 +180,7 @@ def scrape_job_description_endpoint(job_url: str) -> Dict:
             job_url,
             use_selenium=False,
             use_playwright=bool(config.BROWSERLESS_URL),
-            scraper_api_key=None,
+            scraper_api_key=scraper_key,
         )
         return {
             'success': True,

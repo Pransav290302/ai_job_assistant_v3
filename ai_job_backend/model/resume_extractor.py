@@ -9,7 +9,7 @@ import re
 from typing import Dict, Optional
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from model.utils.config import get_config
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 def extract_profile_from_resume(
     resume_text: str,
-    model_name: str = "gpt-3.5-turbo",
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Dict:
@@ -28,9 +27,10 @@ def extract_profile_from_resume(
     if not final_api_key:
         raise ValueError("OPENAI_API_KEY not found")
 
-    client = OpenAI(
+    config = get_config()
+    client = config.create_openai_client(
         api_key=final_api_key,
-        base_url=base_url or os.getenv("OPENAI_BASE_URL"),
+        base_url=base_url or config.get_base_url(),
     )
 
     prompt = f"""Extract structured information from this resume. Return valid JSON only.
@@ -47,7 +47,7 @@ Return a JSON object with exactly these keys:
 No markdown, no extra text. JSON only."""
 
     completion = client.chat.completions.create(
-        model=model_name,
+        model=config.OPENAI_MODEL,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.2,
     )

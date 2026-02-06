@@ -1,6 +1,6 @@
 /**
- * Proxy to backend - avoids CORS by routing through Vercel (same-origin).
- * Frontend calls /api/backend/api/job/scrape instead of BACKEND/api/job/scrape
+ * Proxy to backend - avoids CORS by routing through Next.js (same-origin).
+ * For local: set NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 in .env.local
  */
 import { NextRequest, NextResponse } from "next/server";
 
@@ -28,7 +28,7 @@ async function proxy(
 ) {
   if (!BACKEND) {
     return NextResponse.json(
-      { detail: "Backend URL not configured. Set NEXT_PUBLIC_BACKEND_URL in Vercel." },
+      { detail: "Backend URL not configured. Set NEXT_PUBLIC_BACKEND_URL in .env.local (e.g. http://localhost:8000)." },
       { status: 500 }
     );
   }
