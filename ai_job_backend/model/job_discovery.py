@@ -89,7 +89,7 @@ def _fetch_html(url: str, session: requests.Session | None = None, use_js_render
             )
             if use_js_render:
                 api_url += "&render=true"
-            r = sess.get(api_url, timeout=45)
+            r = sess.get(api_url, timeout=60)
             r.raise_for_status()
             return r.text
         except Exception as e:

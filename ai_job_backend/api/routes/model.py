@@ -76,7 +76,7 @@ class StatusResponse(BaseModel):
 
 @router.post("/resume/analyze")
 @limiter.limit("15/minute")
-async def analyze_resume(req: Request, request: ResumeAnalysisRequest) -> Dict:
+async def analyze_resume(request: Request, body: ResumeAnalysisRequest) -> Dict:
     """
     POST /api/resume/analyze
     Analyzes a resume against a job description.
@@ -88,11 +88,11 @@ async def analyze_resume(req: Request, request: ResumeAnalysisRequest) -> Dict:
     }
     """
     try:
-        if not request.job_description and not request.job_url:
+        if not body.job_description and not body.job_url:
             raise HTTPException(status_code=400, detail="Provide job_url or job_description")
-        logger.info(f"Resume analysis request for job: {request.job_url or 'pasted'}")
+        logger.info(f"Resume analysis request for job: {body.job_url or 'pasted'}")
         loop = asyncio.get_event_loop()
-        r = request
+        r = body
         result = await loop.run_in_executor(
             _executor,
             lambda: analyze_resume_endpoint(
@@ -115,7 +115,7 @@ async def analyze_resume(req: Request, request: ResumeAnalysisRequest) -> Dict:
 
 @router.post("/generate/answer")
 @limiter.limit("15/minute")
-async def generate_answer(req: Request, request: GenerateAnswerRequest) -> Dict:
+async def generate_answer(request: Request, body: GenerateAnswerRequest) -> Dict:
     """
     POST /api/generate/answer
     Generates a tailored answer to an application question.
@@ -133,11 +133,11 @@ async def generate_answer(req: Request, request: GenerateAnswerRequest) -> Dict:
     }
     """
     try:
-        if not request.job_description and not request.job_url:
+        if not body.job_description and not body.job_url:
             raise HTTPException(status_code=400, detail="Provide job_url or job_description")
-        logger.info(f"Answer generation request for job: {request.job_url or 'pasted'}")
+        logger.info(f"Answer generation request for job: {body.job_url or 'pasted'}")
         loop = asyncio.get_event_loop()
-        r = request
+        r = body
         result = await loop.run_in_executor(
             _executor,
             lambda: generate_answer_endpoint(
@@ -161,13 +161,13 @@ async def generate_answer(req: Request, request: GenerateAnswerRequest) -> Dict:
 
 @router.post("/resume/extract")
 @limiter.limit("20/minute")
-async def extract_resume_profile(req: Request, request: ExtractResumeRequest) -> Dict:
+async def extract_resume_profile(request: Request, body: ExtractResumeRequest) -> Dict:
     """
     POST /api/resume/extract
     Extracts work_history, skills, education from resume text using AI.
     """
     try:
-        result = extract_resume_profile_endpoint(request.resume_text)
+        result = extract_resume_profile_endpoint(body.resume_text)
         if not result.get("success"):
             raise HTTPException(status_code=500, detail=result.get("error", "Extraction failed"))
         return result
@@ -246,7 +246,7 @@ async def job_discover(
 
 @router.post("/job/scrape")
 @limiter.limit("15/minute")
-async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
+async def scrape_job(request: Request, body: ScrapeJobRequest) -> Dict:
     """
     POST /api/job/scrape
     Scrapes a job description from a URL.
@@ -257,13 +257,13 @@ async def scrape_job(req: Request, request: ScrapeJobRequest) -> Dict:
     }
     """
     try:
-        if not request.job_url or not request.job_url.strip():
+        if not body.job_url or not body.job_url.strip():
             raise HTTPException(status_code=400, detail="Provide job_url (Indeed or Glassdoor)")
-        logger.info(f"Job scraping request for: {request.job_url}")
+        logger.info(f"Job scraping request for: {body.job_url}")
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _executor,
-            lambda: scrape_job_description_endpoint(job_url=request.job_url.strip()),
+            lambda: scrape_job_description_endpoint(job_url=body.job_url.strip()),
         )
         if not result.get('success'):
             raise HTTPException(status_code=500, detail=result.get('error', 'Scraping failed'))
