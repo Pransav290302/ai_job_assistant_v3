@@ -190,7 +190,6 @@ export default function Documents({ userId, value, onChange }: Props) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Documents</h3>
-      <p className="text-sm text-slate-300">Upload and manage your resume and cover letters securely.</p>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
           <p className="text-xs text-slate-400">Resume</p>

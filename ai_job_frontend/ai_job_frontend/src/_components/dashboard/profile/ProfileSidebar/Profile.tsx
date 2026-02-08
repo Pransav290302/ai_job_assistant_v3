@@ -14,9 +14,6 @@ export default function DefaultProfile({ userId, value, onChange }: Props) {
         <div className="space-y-4">
             <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium bg-slate-900 border border-slate-700">
                 <span className="flex items-center gap-3">
-                    <span className="text-base">📝</span>
-                    Manage and tailor all of your job search documents here!
-
                 </span>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-4">

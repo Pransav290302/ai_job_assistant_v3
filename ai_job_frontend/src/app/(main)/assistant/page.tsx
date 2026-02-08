@@ -28,10 +28,10 @@ async function fetchWithTimeout(
     clearTimeout(id);
     if (e instanceof Error) {
       if (e.name === "AbortError")
-        throw new Error("Request timed out. Ensure the backend is running (e.g. python main.py in ai_job_backend). Try again.");
+        throw new Error("Request timed out.Try again.");
       if (e.message === "Failed to fetch")
         throw new Error(
-          "Cannot reach backend. Check CORS (FRONTEND_URL/ALLOWED_ORIGINS on Render) and NEXT_PUBLIC_BACKEND_URL on Vercel."
+          "Cannot reach backend. "
         );
     }
     throw e;
@@ -214,7 +214,7 @@ export default function AssistantPage() {
   async function handleAnalyze() {
     const hasJob = jobUrl.trim() || jobDescription.trim().length >= 80;
     if (!hasJob || !resumeText.trim()) {
-      setError("Paste a job description (or job URL) above and provide your resume.");
+      setError("upload your resume.");
       return;
     }
     setError(null);
@@ -263,7 +263,7 @@ export default function AssistantPage() {
     const hasJd = jobDescription.trim().length >= 80;
     const hasUrl = jobUrl.trim().length > 0;
     if ((!hasUrl && !hasJd) || !question.trim()) {
-      setError("Enter a job URL (set SCRAPER_API_KEY or BROWSERLESS_URL in backend .env for LinkedIn/Glassdoor) or paste the job description above, then enter the question.");
+      setError("paste the job description above then enter the question.");
       return;
     }
     setError(null);
@@ -340,25 +340,12 @@ export default function AssistantPage() {
               type="url"
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
-              placeholder="https://indeed.com/viewjob?jk=... or https://glassdoor.com/..."
+              placeholder="URL"
               className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none"
             />
           </label>
           <p className="mt-1.5 text-xs text-primary-400">
-            Indeed (easy) and Glassdoor (needs SCRAPER_API_KEY or BROWSERLESS_URL). Paste job description below if needed.
           </p>
-        </div>
-        <div>
-          <label className="block">
-            <span className="text-primary-200 font-medium">Or paste job description</span>
-            <textarea
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Paste the full job description here (e.g. copy from Indeed or Glassdoor job page)"
-              rows={5}
-              className="mt-1 w-full rounded-lg bg-primary-800 border border-primary-600 px-4 py-2 text-primary-100 placeholder-primary-500 focus:border-accent-500 focus:outline-none resize-y"
-            />
-          </label>
         </div>
 
         {tab === "analyze" && (

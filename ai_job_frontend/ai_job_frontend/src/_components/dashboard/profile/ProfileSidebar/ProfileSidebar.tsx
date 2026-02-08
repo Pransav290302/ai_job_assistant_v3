@@ -21,7 +21,6 @@ export default function ProfileSidebar({ activeTab, onTabChange }: Props) {
             <span className="text-base">📝</span>
             Profile
           </span>
-          <span className="text-xs text-sky-100">Documents + overview</span>
         </button>
 
         <button
@@ -36,7 +35,6 @@ export default function ProfileSidebar({ activeTab, onTabChange }: Props) {
             <span className="text-base">📊</span>
             Personal Info
           </span>
-          <span className="text-xs text-slate-400">Edit demographic data</span>
         </button>
 
         <button
@@ -51,7 +49,6 @@ export default function ProfileSidebar({ activeTab, onTabChange }: Props) {
             <span className="text-base">💼</span>
             Job Preferences
           </span>
-          <span className="text-xs text-slate-400">Refine your job search</span>
         </button>
       </div>
 

@@ -76,7 +76,6 @@ export default async function DashboardPage() {
                     </div>
                     <div>
                       <span className="font-semibold text-slate-100">Job Matching</span>
-                      <p className="text-xs text-slate-400 mt-1">AI-ranked roles based on your profile. Find best matches.</p>
                       <span className="inline-block mt-2 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-xs text-slate-300">Matches</span>
                     </div>
                   </div>

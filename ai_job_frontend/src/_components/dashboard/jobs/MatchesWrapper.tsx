@@ -274,7 +274,6 @@ export default function MatchesWrapper({ initialMatches }: Props) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-semibold">Best Matches</h1>
-              <p className="text-sm text-slate-400">AI-ranked roles based on your profile</p>
             </div>
             <button
               type="button"
@@ -285,20 +284,6 @@ export default function MatchesWrapper({ initialMatches }: Props) {
               {loading ? "Finding…" : "Find matches"}
             </button>
           </div>
-          {backendStatus != null && (
-            <div className="text-xs text-slate-500">
-              {backendStatus.reachable ? (
-                <>
-                  Backend: connected
-                  {backendStatus.openai_configured !== undefined && (
-                    <> · LLM: {backendStatus.openai_configured ? `configured (${backendStatus.model ?? "—"})` : "not configured"}</>
-                  )}
-                </>
-              ) : (
-                "Backend: unreachable — set NEXT_PUBLIC_BACKEND_URL in .env.local and ensure the backend is running."
-              )}
-            </div>
-          )}
           {agentStatus && (
             <div className="flex items-center gap-2 rounded-lg border border-sky-800 bg-sky-950/50 px-4 py-2 text-sm text-sky-200" role="status">
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sky-400" aria-hidden />
@@ -320,7 +305,7 @@ export default function MatchesWrapper({ initialMatches }: Props) {
 
         {visibleMatches.length === 0 && !loading && (
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-8 text-center">
-            <p className="text-slate-300 mb-4">No matches yet. Get AI-ranked roles based on your profile.</p>
+            <p className="text-slate-300 mb-4">No matches yet.</p>
             <button
               type="button"
               onClick={findMatches}

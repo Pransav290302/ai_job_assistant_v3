@@ -3,7 +3,6 @@
 import UserInfo from "./UserInfo";
 
 const TITLE = "My Career Hub";
-const SUBTITLE = "Manage your profile, personal info, and job preferences in one place.";
 const BADGE = "Profile Overview";
 
 type Props = {
@@ -23,7 +22,6 @@ export default function ProfileHeader({ name, initials, status }: Props) {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{TITLE}</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{SUBTITLE}</p>
           </div>
         </div>
 
