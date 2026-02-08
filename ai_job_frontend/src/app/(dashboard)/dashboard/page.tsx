@@ -91,7 +91,7 @@ export default async function DashboardPage() {
                     </div>
                     <div>
                       <span className="font-semibold text-slate-100">Browse Jobs</span>
-                      <p className="text-xs text-slate-400 mt-1">Discover jobs from ZipRecruiter, DailyAIJobs & more.</p>
+                      <p className="text-xs text-slate-400 mt-1">Discover jobs from Jooble API, ranked by AI for best match.</p>
                       <span className="inline-block mt-2 rounded-full bg-slate-700/80 px-2.5 py-0.5 text-xs text-slate-300">Discover</span>
                     </div>
                   </div>

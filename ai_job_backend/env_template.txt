@@ -6,17 +6,18 @@ OPENAI_BASE_URL=https://YOUR-RESOURCE.services.ai.azure.com/openai/v1
 # If Azure returns 400/401, set api-version (e.g. 2024-08-01-preview or from Foundry docs)
 # OPENAI_API_VERSION=2024-08-01-preview
 
-# Scraper Configuration
+# Job discovery: Jooble API only (500 requests/day). Get key at https://jooble.org/api/about
+JOOBLE_API_KEY=your_jooble_api_key
+
+# Optional: for scraping a single job URL (e.g. "Load full description" on a job). Not used for discovery.
+# SCRAPER_API_KEY=your_scraperapi_key
+# BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN
+
+# Scraper Configuration (only for single-URL scrape if needed)
 USE_SELENIUM=false
 USE_PLAYWRIGHT=true
 USE_STEALTH=true
 SELENIUM_HEADLESS=true
-# LinkedIn/Glassdoor - set ONE of these (or both; ScraperAPI tried first):
-# Option A: ScraperAPI (JS rendering, no browser) - https://www.scraperapi.com
-# SCRAPER_API_KEY=your_scraperapi_key
-# Option B: Browserless (free tier ~6 hrs/mo) - https://browserless.io
-# Must include ?token=... or you get 401 Unauthorized. Get token at https://browserless.io
-# BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN
 
 # Logging Configuration
 LOG_LEVEL=INFO
@@ -48,8 +49,6 @@ PG_PORT=5432
 PG_USER=postgres
 PG_PASSWORD=your_postgres_password_here
 PG_DATABASE=ai_job_assistant
-
-# Job discovery: ZipRecruiter only. Set SCRAPER_API_KEY for JS rendering.
 
 # Supabase (required for LLM/DeepSeek R1 to fetch user saved preferences)
 # Used by: /api/job/rank-for-user, agent get_user_profile tool.

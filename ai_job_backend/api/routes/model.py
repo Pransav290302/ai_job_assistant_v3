@@ -228,11 +228,11 @@ async def job_discover(
 ) -> Dict:
     """
     GET /api/job/discover?q=software+engineer&location=remote&max_results=60
-    Discover jobs from ZipRecruiter, DailyAIJobs.com, and AIWorkPortal.com (free).
-    Use user profile roles/skills as q for personalized results. Returns up to 60 jobs.
+    Discover jobs from Jooble API. Uses 500 requests/day limit; response includes jooble_remaining.
+    Use profile roles/skills as q for personalized results.
     """
     try:
-        max_results = min(max(1, max_results), 150)
+        max_results = min(max(1, max_results), 60)
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             _executor,

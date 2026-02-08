@@ -67,16 +67,16 @@ def get_candidate_jobs_for_user(
     if profile.get("error"):
         return {"profile": profile, "jobs": [], "query": "", "location": "", "error": profile["error"]}
 
-    # Use short, discovery-friendly query/location so URLs stay within safe length (avoid ScraperAPI 500)
+    # Discovery-friendly query/location from profile (used by Jooble API)
     query, location = _discovery_query_and_location(profile)
 
     result = discover_jobs(query=query, location=location, max_results=max_jobs)
     jobs = result.get("jobs") or []
 
-    # Fallback: if ZipRecruiter returns no results, try broader search
+    # Fallback: if Jooble returns no results, try broader search
     if not jobs:
         fallback_query = "software engineer" if query != "software engineer" else "developer"
-        logger.info("ZipRecruiter returned 0 jobs for query=%r location=%r; trying fallback query=%r", query, location, fallback_query)
+        logger.info("Jooble returned 0 jobs for query=%r location=%r; trying fallback query=%r", query, location, fallback_query)
         fallback = discover_jobs(query=fallback_query, location="", max_results=max_jobs)
         jobs = fallback.get("jobs") or []
         if jobs:
@@ -130,7 +130,7 @@ def rank_jobs_for_user(
         reasoning = (
             f"No jobs found for your profile. "
             f"Search used: \"{query_used}\" in \"{location_used}\". "
-            "ZipRecruiter may have returned no listings. "
+            "Jooble may have returned no listings or daily API limit (500) may be reached. "
             "Try updating your preferences (roles/location) or try again later."
         )
         logger.warning("rank_jobs_for_user: no jobs from discover (query=%s, location=%s)", query_used, location_used)
