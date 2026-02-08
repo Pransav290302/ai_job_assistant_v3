@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { JobListing } from "@/types/jobs";
 import { supabaseClient } from "@/_lib/supabaseClient";
+import { useJobsContextOptional } from "@/_lib/JobsContext";
 import JobCardList from "./JobCardList";
 import JobDisplay from "./JobDisplay";
 
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export default function MatchesWrapper({ initialMatches }: Props) {
+  const ctx = useJobsContextOptional();
   const [matches, setMatches] = useState<JobListing[]>(initialMatches);
   const [selectedId, setSelectedId] = useState<string>(initialMatches[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
@@ -63,13 +65,20 @@ export default function MatchesWrapper({ initialMatches }: Props) {
       .catch(() => setBackendStatus({ reachable: false }));
   }, []);
 
-  // Auto-fetch real-time profile-matched jobs on mount (scraper + DeepSeek R1)
+  // Use jobs from context when available (e.g. user came from Jobs page) to avoid second API call
   useEffect(() => {
+    if (ctx?.jobs?.length) {
+      setMatches(ctx.jobs);
+      setReasoning(ctx.reasoning ?? null);
+      setSelectedId(ctx.jobs[0]?.id ?? "");
+      setDismissedIds(new Set());
+      return;
+    }
     if (initialMatches.length > 0) return;
     const timer = setTimeout(() => findMatches(), 100);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ctx?.jobs?.length]);
 
   const visibleMatches = useMemo(
     () => matches.filter((j) => !dismissedIds.has(j.id)),
@@ -122,6 +131,8 @@ export default function MatchesWrapper({ initialMatches }: Props) {
             ai_analysis: r.explanation ? { explanation: r.explanation, reasons: [r.explanation] } : undefined,
           }));
           setMatches(list);
+          ctx?.setJobs(list);
+          ctx?.setReasoning(rankData.reasoning || null);
           setDismissedIds(new Set());
           setSavedIds(new Set());
           setSelectedId(list[0]?.id ?? "");
@@ -180,6 +191,8 @@ export default function MatchesWrapper({ initialMatches }: Props) {
         )
       );
       setMatches(list);
+      ctx?.setJobs(list);
+      ctx?.setReasoning(null);
       setDismissedIds(new Set());
       setSavedIds(new Set());
       setSelectedId(list[0]?.id ?? "");
