@@ -30,7 +30,7 @@ class AgentRunRequest(BaseModel):
 
 @router.post("/agent/run")
 @limiter.limit("5/minute")
-async def run_agent(req: Request, request: AgentRunRequest) -> dict:
+async def run_agent(request: Request, body: AgentRunRequest) -> dict:
     """
     POST /api/agent/run
     Run the AI agent on a natural-language task. The agent perceives the goal,
@@ -63,14 +63,14 @@ async def run_agent(req: Request, request: AgentRunRequest) -> dict:
         )
     
     # Build task with optional resume and user context (for get_user_profile tool)
-    task_text = request.task.strip()
-    if request.resume_text and request.resume_text.strip():
-        resume_preview = request.resume_text.strip()[:6000]
+    task_text = body.task.strip()
+    if body.resume_text and body.resume_text.strip():
+        resume_preview = body.resume_text.strip()[:6000]
         task_text = f"My resume text:\n{resume_preview}\n\nTask: {task_text}"
-    if request.user_id and request.user_id.strip():
-        task_text = f"User ID (use get_user_profile to fetch my profile): {request.user_id.strip()}\n\n{task_text}"
+    if body.user_id and body.user_id.strip():
+        task_text = f"User ID (use get_user_profile to fetch my profile): {body.user_id.strip()}\n\n{task_text}"
     
-    task_lower = request.task.strip().lower()
+    task_lower = body.task.strip().lower()
     if "linkedin.com" in task_lower:
         raise HTTPException(
             status_code=400,
@@ -86,7 +86,7 @@ async def run_agent(req: Request, request: AgentRunRequest) -> dict:
                 "or use Indeed URLs / paste the job description."
             ),
         )
-    logger.info("Agent task: %s", request.task[:100])
+    logger.info("Agent task: %s", body.task[:100])
 
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(

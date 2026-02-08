@@ -15,6 +15,7 @@ SELENIUM_HEADLESS=true
 # Option A: ScraperAPI (JS rendering, no browser) - https://www.scraperapi.com
 # SCRAPER_API_KEY=your_scraperapi_key
 # Option B: Browserless (free tier ~6 hrs/mo) - https://browserless.io
+# Must include ?token=... or you get 401 Unauthorized. Get token at https://browserless.io
 # BROWSERLESS_URL=wss://chrome.browserless.io?token=YOUR_TOKEN
 
 # Logging Configuration

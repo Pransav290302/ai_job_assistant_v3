@@ -320,18 +320,20 @@ class JobScraper:
         from model.utils.config import get_config
         config = get_config()
         browserless_url = config.BROWSERLESS_URL
+        # Browserless requires ?token=YOUR_TOKEN in the URL; otherwise 401 Unauthorized
+        if browserless_url and "token=" not in browserless_url:
+            logger.warning(
+                "BROWSERLESS_URL is set but missing token (e.g. wss://chrome.browserless.io?token=YOUR_TOKEN). "
+                "Get a token at https://browserless.io. Skipping Playwright to avoid 401."
+            )
+            return None
+        if not browserless_url:
+            # No remote browser; launching local Chromium often fails on serverless (e.g. Render)
+            return None
         use_stealth = getattr(config, "USE_STEALTH", True) and STEALTH_AVAILABLE
 
-        launch = {"headless": self.headless, "args": [
-            "--no-sandbox", "--disable-dev-shm-usage",
-            "--disable-blink-features=AutomationControlled",
-        ]}
-
         async with async_playwright() as p:
-            if browserless_url:
-                browser = await p.chromium.connect_over_cdp(browserless_url)
-            else:
-                browser = await p.chromium.launch(**launch)
+            browser = await p.chromium.connect_over_cdp(browserless_url)
             ctx = await browser.new_context(
                 viewport={"width": 1920, "height": 1080},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
