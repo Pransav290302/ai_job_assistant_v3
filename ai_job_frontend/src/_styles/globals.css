@@ -2,6 +2,9 @@
 
 @tailwind utilities;
 
+/* Class-based dark mode: .dark on html enables dark: styles */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ✅ Tailwind v4 theme tokens */
 @theme {
   --color-primary-50:  #e1e8ef;

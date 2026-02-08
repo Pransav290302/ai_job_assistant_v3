@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ProfileSidebar from "./ProfileSidebar/ProfileSidebar";
+import ProfileSidebar, { type ProfileTab } from "./ProfileSidebar/ProfileSidebar";
 import Profile from "./ProfileSidebar/Profile";
 import Personal from "./ProfileSidebar/Personal";
 import Preferences from "./ProfileSidebar/Preferences";
+import Settings from "./ProfileSidebar/Settings";
 import AutofillSection from "./AutofillSection";
 import ProfileHeader from "./profileHeader/ProfileHeader";
 import { PersonalInfo, JobPreferences } from "@/types/profile";
@@ -19,7 +20,7 @@ export default function ProfilePageClient({ userId: initialUserId, initialInfo, 
   const [userId] = useState<string | null>(initialUserId);
   const [info, setInfo] = useState<PersonalInfo>(initialInfo);
   const [jobPrefs, setJobPrefs] = useState<JobPreferences>(initialJobPrefs);
-  const [activeTab, setActiveTab] = useState<"profile" | "autofill" | "personal" | "preferences">("profile");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
 
   const initials = useMemo(() => {
     const first = info.first_name?.trim() ?? "";
@@ -37,7 +38,7 @@ export default function ProfilePageClient({ userId: initialUserId, initialInfo, 
   const displayStatus = jobPrefs.job_status || "Actively looking";
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
       <div className="w-full px-10 md:px-16 lg:px-24 xl:px-32 py-12 space-y-8">
         <ProfileHeader name={displayName} initials={initials} status={displayStatus} />
 
@@ -47,19 +48,24 @@ export default function ProfilePageClient({ userId: initialUserId, initialInfo, 
           </div>
           <div className="lg:col-span-3 space-y-6">
             {activeTab === "profile" && (
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 p-6 shadow-sm dark:shadow-none">
                 <Profile userId={userId} value={info} onChange={setInfo} />
               </div>
             )}
             {activeTab === "autofill" && <AutofillSection />}
             {activeTab === "personal" && (
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 p-6 shadow-sm dark:shadow-none">
                 <Personal userId={userId} value={info} onChange={setInfo} />
               </div>
             )}
             {activeTab === "preferences" && (
-              <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 p-6 shadow-sm dark:shadow-none">
                 <Preferences userId={userId} value={jobPrefs} onChange={setJobPrefs} />
+              </div>
+            )}
+            {activeTab === "settings" && (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 p-6 shadow-sm dark:shadow-none">
+                <Settings />
               </div>
             )}
           </div>

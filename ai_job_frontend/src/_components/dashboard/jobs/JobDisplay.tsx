@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { JobListing } from "@/types/jobs";
+import { stripHtml } from "@/_lib/text";
 
 type Props = {
   job?: JobListing;
@@ -56,7 +57,8 @@ export default function JobDisplay({
   if (!job) return null;
 
   const hasSourceUrl = !!(job.source_url ?? (job as { url?: string }).url);
-  const descriptionToShow = fullDescription ?? job.description ?? "";
+  const rawDescription = fullDescription ?? job.description ?? "";
+  const descriptionToShow = stripHtml(rawDescription);
   const showLoadFullButton = hasSourceUrl && !fullDescription && onLoadFullDescription;
   const matchReasons = job.ai_analysis?.reasons;
   const hasMatchReasons = Array.isArray(matchReasons) && matchReasons.length > 0;

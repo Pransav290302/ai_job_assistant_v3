@@ -1,5 +1,5 @@
-import Header from "@/_components/main/Header";
 import "@/_styles/globals.css";
+import { ThemeProvider } from "@/_lib/ThemeContext";
 import { Josefin_Sans } from "next/font/google";
 
 const josefin = Josefin_Sans({
@@ -20,23 +20,35 @@ export const metadata = {
   `.trim(),
 };
 
-export default function Layout({ children}: { children: React.ReactNode }) {
+const themeScript = `
+(function(){
+  var t = localStorage.getItem('job-assistant-theme');
+  document.documentElement.classList.toggle('dark', t !== 'light');
+})();
+`;
+
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-  <html lang="en">
-    <body
-      className={`text-primary-100 ${josefin.className} flex flex-col min-h-screen antialiased relative`}
-      style={{
-        backgroundImage: "url('/bg1.png')",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="flex-1 px-8 py-12">
-        <main className="max-w-7xl mx-auto">{children}</main>
-      </div>
-   </body>
-  </html>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body
+        className={`text-primary-100 ${josefin.className} flex flex-col min-h-screen antialiased relative bg-white dark:bg-transparent`}
+        style={{
+          backgroundImage: "url('/bg1.png')",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+          backgroundPosition: "center",
+        }}
+      >
+        <ThemeProvider>
+          <div className="flex-1 px-8 py-12">
+            <main className="max-w-7xl mx-auto">{children}</main>
+          </div>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

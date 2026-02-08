@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <JobsProvider>
-      <div className="min-h-screen flex flex-col text-slate-100">
-        <header className="sticky top-0 z-40 backdrop-blur border-b border-slate-800 bg-slate-900/85 shadow-lg shadow-slate-900/40">
+      <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-transparent">
+        <header className="sticky top-0 z-40 backdrop-blur border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/85 shadow-md dark:shadow-slate-900/40">
           <div className="w-full px-10 md:px-20 lg:px-28 xl:px-36 py-6 flex justify-between items-center">
             <div className="-ml-30">
               <Logo />
