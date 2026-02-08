@@ -1,8 +1,3 @@
-"""
-Rank jobs using DeepSeek R1: profile (skills, experience, interests from preferences DB)
-+ candidate jobs → LLM reasons and returns ranked jobs with explanations.
-"""
-
 import json
 import logging
 import os
@@ -15,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def _build_profile_summary(profile: Dict[str, Any]) -> str:
-    """Turn profile dict into a short text summary for the prompt."""
     parts = []
     if profile.get("current_title") or profile.get("work_history"):
         parts.append(f"Roles/Experience: {profile.get('current_title') or profile.get('work_history') or '—'}")
@@ -33,7 +27,6 @@ def _build_profile_summary(profile: Dict[str, Any]) -> str:
 
 
 def _jobs_to_text(jobs: List[Dict[str, Any]]) -> str:
-    """Format jobs list for the prompt."""
     lines = []
     for i, j in enumerate(jobs, 1):
         title = j.get("title") or "—"
@@ -50,22 +43,6 @@ def rank_jobs_with_reasoning(
     jobs: List[Dict[str, Any]],
     max_results: int = 15,
 ) -> Dict[str, Any]:
-    """
-    Use DeepSeek R1 to rank jobs by fit with the user's profile (skills, experience, interests).
-    Returns ranked list with explanations.
-
-    Args:
-        profile: From get_user_profile_from_db (current_title, skills, location, work_history, etc.).
-        jobs: List of job dicts (title, company, url, snippet, location).
-        max_results: Max number of ranked jobs to return.
-
-    Returns:
-        {
-            "ranked_jobs": [{"rank": 1, "job_index": 0, "title": "...", "company": "...", "explanation": "..."}, ...],
-            "reasoning": "Short overall reasoning from the model.",
-            "raw_response": "..." (if parsing failed, for debugging)
-        }
-    """
     if not jobs:
         return {"ranked_jobs": [], "reasoning": "No jobs to rank.", "raw_response": ""}
 
@@ -115,7 +92,6 @@ Example format: {{"reasoning": "...", "ranked": [{{"index": 2, "title": "...", "
         logger.error("DeepSeek R1 rank call failed: %s", e, exc_info=True)
         raise ValueError(f"LLM call failed: {e}") from e
 
-    # Parse JSON (allow wrapped in ```json ... ```)
     json_str = raw
     m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw)
     if m:

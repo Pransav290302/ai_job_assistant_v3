@@ -17,7 +17,6 @@ from api.limiter import limiter
 from api.database import engine
 from api.routes import agent, auth, jobs, health, model, users
 
-# Force Windows-specific event loop policy for Playwright
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -56,11 +55,10 @@ app.include_router(users.router)
 app.include_router(model.router)
 app.include_router(agent.router)
 
-# Configure CORS – allow Vercel (*.vercel.app) + explicit origins from env
 _frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 _allowed = os.getenv("ALLOWED_ORIGINS", _frontend_url)
 allow_origins = [o.strip() for o in _allowed.split(",") if o.strip()]
-# Regex: any *.vercel.app (production + preview deployments)
+
 _vercel_regex = r"^https://[a-zA-Z0-9][a-zA-Z0-9-]*\.vercel\.app$"
 app.add_middleware(
     CORSMiddleware,
@@ -72,13 +70,11 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Initialize Database tables
 models.Base.metadata.create_all(bind=engine)
 
 
 @app.on_event("startup")
 def startup_checks():
-    """Logging setup and production config validation."""
     from model.utils.logging_config import setup_logging
     log_level = os.getenv("LOG_LEVEL", "INFO")
     log_file = os.getenv("LOG_FILE")

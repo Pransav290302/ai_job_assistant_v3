@@ -1,9 +1,3 @@
-"""
-Backend API Integration
-Helper functions for integrating with FastAPI backend.
-These functions can be directly imported and called by the backend server.
-"""
-
 import logging
 import os
 from typing import Dict, Optional
@@ -17,23 +11,17 @@ from model.answer_generator import generate_tailored_answer
 from model.utils.config import Config, get_config
 from model.utils.logging_config import setup_logging
 
-# Load environment variables from .env file
+
 load_dotenv()
 
-# Set up logging
+
 logger = setup_logging()
 
-# Initialize service (can be reused across requests)
+
 _service_instance: Optional[JobAssistantService] = None
 
 
 def get_service() -> JobAssistantService:
-    """
-    Get or create the service instance (singleton pattern for efficiency).
-    
-    Returns:
-        JobAssistantService instance
-    """
     global _service_instance
     
     if _service_instance is None:
@@ -53,26 +41,6 @@ def analyze_resume_endpoint(
     job_url: Optional[str] = None,
     job_description: Optional[str] = None,
 ) -> Dict:
-    """
-    API endpoint function for resume analysis.
-    This function can be called directly from FastAPI routes.
-    
-    Args:
-        resume_text: User's resume text
-        job_url: URL of the job posting
-        
-    Returns:
-        Dictionary with analysis results or error information
-        
-    Example FastAPI route:
-        @router.post("/resume/analyze")
-        async def analyze_resume(data: ResumeAnalysisRequest):
-            result = analyze_resume_endpoint(
-                resume_text=data.resume_text,
-                job_url=data.job_url
-            )
-            return result
-    """
     logger.info("Resume analysis endpoint called")
     
     try:
@@ -97,28 +65,6 @@ def generate_answer_endpoint(
     job_url: Optional[str] = None,
     job_description: Optional[str] = None,
 ) -> Dict:
-    """
-    API endpoint function for generating tailored answers.
-    This function can be called directly from FastAPI routes.
-    
-    Args:
-        question: Application question
-        user_profile: Dictionary with user profile data
-        job_url: URL of the job posting
-        
-    Returns:
-        Dictionary with generated answer or error information
-        
-    Example FastAPI route:
-        @router.post("/generate/answer")
-        async def generate_answer(data: AnswerRequest):
-            result = generate_answer_endpoint(
-                question=data.question,
-                user_profile=data.user_profile,
-                job_url=data.job_url
-            )
-            return result
-    """
     logger.info("Generate answer endpoint called")
     
     try:
@@ -139,7 +85,6 @@ def generate_answer_endpoint(
 
 
 def extract_resume_profile_endpoint(resume_text: str) -> Dict:
-    """Extract work_history, skills, education from resume text using AI."""
     logger.info("Extract resume profile endpoint called")
     try:
         profile = extract_profile_from_resume(resume_text)
@@ -150,9 +95,6 @@ def extract_resume_profile_endpoint(resume_text: str) -> Dict:
 
 
 def scrape_job_description_endpoint(job_url: str) -> Dict:
-    """
-    Scrape job description from Indeed or Glassdoor URL (LinkedIn not supported).
-    """
     logger.info(f"Scrape job description endpoint called for: {job_url}")
     
     try:

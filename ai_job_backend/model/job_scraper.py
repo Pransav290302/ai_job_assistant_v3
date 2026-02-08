@@ -1,9 +1,3 @@
-"""
-Production-grade Job Description Scraper
-Supports: Indeed (easy, requests), Glassdoor (ScraperAPI/Playwright), Greenhouse, Lever.
-LinkedIn is not supported; use Indeed or Glassdoor.
-"""
-
 import os
 import re
 import logging
@@ -17,7 +11,6 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# Optional Selenium imports
 try:
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
@@ -30,14 +23,13 @@ try:
 except ImportError:
     SELENIUM_AVAILABLE = False
 
-# Optional Playwright - works on Render with: playwright install chromium
+
 try:
     from playwright.async_api import async_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
-# Optional playwright-stealth
 try:
     from playwright_stealth import Stealth
     STEALTH_AVAILABLE = True
@@ -45,7 +37,6 @@ except ImportError:
     STEALTH_AVAILABLE = False
 
 
-# Login wall / blocked page indicators (LinkedIn, Glassdoor)
 LOGIN_WALL_PATTERNS = [
     r"sign in to linkedin",
     r"join linkedin",
@@ -60,7 +51,6 @@ LOGIN_WALL_PATTERNS = [
 
 
 def _is_login_wall(html: str) -> bool:
-    """Detect if page is a login/signup wall instead of job content."""
     if not html or len(html) < 500:
         return True
     text = html.lower()[:8000]
@@ -71,11 +61,6 @@ def _is_login_wall(html: str) -> bool:
 
 
 class JobScraper:
-    """
-    Production job scraper with multiple providers.
-    Priority: ScraperAPI (if configured) > Playwright > requests.
-    """
-
     SITE_SELECTORS = {
         "linkedin": {
             "content_selectors": [
@@ -141,7 +126,7 @@ class JobScraper:
         },
     }
 
-    # Common noise patterns removed from extracted text (nav, ads, footers)
+
     NOISE_PATTERNS = [
         r"Apply now\s*",
         r"Save job\s*",
@@ -159,10 +144,10 @@ class JobScraper:
         r"Connect with us\s*",
         r"^\s*Home\s*\|\s*",
         r"\s*Home\s*\|\s*Careers\s*\|\s*",
-        r"^\s*\[.*?\]\s*",  # [AD] or [Advertisement]
+        r"^\s*\[.*?\]\s*",  
     ]
 
-    JS_SITES = ("glassdoor",)  # Indeed, Greenhouse, Lever use requests (easy)
+    JS_SITES = ("glassdoor",) 
 
     def __init__(
         self,
@@ -199,7 +184,6 @@ class JobScraper:
         return "generic"
 
     def _clean_text(self, text: str) -> str:
-        """Remove navigation, ads, footer text, and normalize whitespace."""
         if not text:
             return ""
         text = re.sub(r"\s+", " ", text)
@@ -274,7 +258,6 @@ class JobScraper:
         return self._extract_generic(soup) or None
 
     def _scrape_with_scraper_api(self, url: str) -> Optional[str]:
-        """ScraperAPI - production-grade, handles LinkedIn/Glassdoor."""
         if not self.scraper_api_key:
             return None
         try:
@@ -320,7 +303,6 @@ class JobScraper:
         from model.utils.config import get_config
         config = get_config()
         browserless_url = config.BROWSERLESS_URL
-        # Browserless requires ?token=YOUR_TOKEN in the URL; otherwise 401 Unauthorized
         if browserless_url and "token=" not in browserless_url:
             logger.warning(
                 "BROWSERLESS_URL is set but missing token (e.g. wss://chrome.browserless.io?token=YOUR_TOKEN). "
@@ -328,7 +310,7 @@ class JobScraper:
             )
             return None
         if not browserless_url:
-            # No remote browser; launching local Chromium often fails on serverless (e.g. Render)
+
             return None
         use_stealth = getattr(config, "USE_STEALTH", True) and STEALTH_AVAILABLE
 
@@ -380,9 +362,6 @@ class JobScraper:
         url: str,
         force_playwright: bool = False,
     ) -> Dict:
-        """
-        Scrape job description. Indeed/Greenhouse/Lever use requests; Glassdoor uses ScraperAPI or Playwright.
-        """
         logger.info(f"Scraping: {url}")
         site = self._detect_site(url)
         if site == "linkedin":
@@ -394,13 +373,12 @@ class JobScraper:
             }
         needs_js = site in self.JS_SITES
 
-        # Indeed/Greenhouse/Lever: requests usually works
+
         if not needs_js:
             text = self._scrape_with_requests(url)
             if text:
                 return {"success": True, "text": text, "method": "requests", "url": url}
 
-        # LinkedIn/Glassdoor: try ScraperAPI (JS render) first, then Playwright, then requests
         if self.scraper_api_key:
             text = self._scrape_with_scraper_api(url)
             if text:
@@ -445,7 +423,6 @@ async def scrape_job_description_async(
     use_playwright: bool = True,
     scraper_api_key: Optional[str] = None,
 ) -> str:
-    """Async version. Raises ValueError on failure."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
         None,
@@ -461,7 +438,6 @@ def scrape_job_description(
     use_playwright: bool = True,
     scraper_api_key: Optional[str] = None,
 ) -> str:
-    """Convenience function. Raises ValueError on failure."""
     key = scraper_api_key or os.getenv("SCRAPER_API_KEY")
     scraper = JobScraper(
         use_selenium=use_selenium,

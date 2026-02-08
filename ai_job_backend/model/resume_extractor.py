@@ -1,7 +1,3 @@
-"""
-Extract structured profile (work_history, skills, education) from raw resume text using AI.
-"""
-
 import json
 import logging
 import os
@@ -20,9 +16,6 @@ def extract_profile_from_resume(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Dict:
-    """
-    Use AI to extract work_history, skills, education, additional_info from resume text.
-    """
     final_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not final_api_key:
         raise ValueError("OPENAI_API_KEY not found")

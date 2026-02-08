@@ -1,8 +1,3 @@
-"""
-Agent API Routes
-Agentic flow: perceive goal → reason → take actions (scraper, LLM) to achieve it.
-"""
-
 import asyncio
 import logging
 import os
@@ -22,7 +17,6 @@ MAX_RESUME_LEN = 50_000
 
 
 class AgentRunRequest(BaseModel):
-    """Natural-language task for the agent to accomplish."""
     task: str = Field(..., max_length=MAX_TASK_LEN, description="Goal, e.g. 'Scrape this job URL and analyze my resume against it'")
     resume_text: str | None = Field(None, max_length=MAX_RESUME_LEN, description="Optional resume text for analyze/extract tasks")
     user_id: str | None = Field(None, max_length=64, description="Optional user ID for get_user_profile tool (Supabase auth UUID)")
@@ -31,17 +25,6 @@ class AgentRunRequest(BaseModel):
 @router.post("/agent/run")
 @limiter.limit("5/minute")
 async def run_agent(request: Request, body: AgentRunRequest) -> dict:
-    """
-    POST /api/agent/run
-    Run the AI agent on a natural-language task. The agent perceives the goal,
-    reasons about which tools to use (scraper, resume analyzer, answer generator),
-    and takes actions to achieve it.
-    
-    Example tasks:
-    - "Scrape https://linkedin.com/jobs/123 and analyze my resume against it"
-    - "Extract my profile from my resume"
-    - "Generate an answer to 'Why are you a good fit?' for job at [URL]"
-    """
     try:
         from model.agents import run_job_assistant_agent, is_smolagents_available
     except ImportError:
@@ -61,8 +44,6 @@ async def run_agent(request: Request, body: AgentRunRequest) -> dict:
             status_code=503,
             detail="OPENAI_API_KEY not set. Agent requires LLM.",
         )
-    
-    # Build task with optional resume and user context (for get_user_profile tool)
     task_text = body.task.strip()
     if body.resume_text and body.resume_text.strip():
         resume_preview = body.resume_text.strip()[:6000]

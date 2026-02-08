@@ -1,8 +1,3 @@
-"""
-Agent orchestration for the AI Job Assistant (Senior Data Scientist todo).
-Complete workflows: scrape -> prompt -> LLM -> parse -> validate.
-"""
-
 import logging
 import os
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -44,26 +39,7 @@ def analyze_resume_and_jd(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Complete workflow for resume vs job analysis.
-
-    Steps:
-    1. Scrape job description (if job_url provided and no job_description).
-    2. Call resume_analyzer.analyze_resume_and_jd (prompt -> LLM -> parse -> validate).
-    3. Return ResumeScoreOutput.
-
-    Args:
-        resume_text: User's resume text.
-        job_url: URL of job posting (used if job_description not provided).
-        job_description: Optional. If provided (e.g. pasted), skip scrape.
-        llm_client: Unused; resume_analyzer uses config. Kept for API compatibility.
-        api_key, base_url: Passed to resume_analyzer when llm_client is None.
-
-    Returns:
-        Validated ResumeScoreOutput dict (score, match_percentage, suggestions, etc.).
-    """
     logger.info("Starting resume analysis workflow")
-    # Step 1: Get job description
     if job_description and len(job_description.strip()) >= 80:
         jd_text = job_description.strip()
         logger.info(f"Using provided job description ({len(jd_text)} chars)")
@@ -80,7 +56,7 @@ def analyze_resume_and_jd(
         logger.info(f"Scraped job description ({len(jd_text)} chars)")
     else:
         raise ValueError("Provide job_url or job_description")
-    # Step 2 & 3: Analyze (prompt -> LLM -> parse -> validate in resume_analyzer)
+
     return _analyze_resume_and_jd(
         resume_text=resume_text,
         job_description=jd_text,
@@ -98,29 +74,8 @@ def generate_tailored_answer(
     base_url: Optional[str] = None,
     temperature: float = 0.7,
 ) -> str:
-    """
-    Complete workflow for generating a tailored application answer.
-
-    Steps:
-    1. Format user_profile as string for prompt.
-    2. Format prompt from prompts.TAILORED_ANSWER_PROMPT.
-    3. Call LLM.
-    4. Return answer text.
-
-    Args:
-        user_profile: Dict with work_history, skills, education, etc. (can be loose format).
-        job_description: Job description text.
-        question: Application question (e.g. "Why are you a good fit?").
-        llm_client: Optional OpenAI-compatible client.
-        api_key, base_url: Used when llm_client is None.
-        temperature: LLM temperature (default 0.7 for creative answers).
-
-    Returns:
-        Generated answer string.
-    """
     logger.info("Starting tailored answer workflow")
     try:
-        # Serialize profile for prompt
         work = user_profile.get("work_history", "")
         if isinstance(work, list):
             work = "\n".join(str(x) for x in work)

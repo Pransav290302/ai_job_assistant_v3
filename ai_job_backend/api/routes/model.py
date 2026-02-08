@@ -1,13 +1,8 @@
-"""
-Data Science API Routes
-FastAPI routes for resume analysis, answer generation, and job scraping.
-"""
-
 import asyncio
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Optional  # noqa: F401 - Optional used in BaseModel
+from typing import Dict, Optional  
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
@@ -24,21 +19,18 @@ from model.job_discovery import discover_jobs
 from model.job_matches import rank_jobs_for_user as rank_jobs_for_user_impl
 from model.utils.config import get_config
 
-# Load environment variables from .env file
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["model"])
 
 
-# 1 worker for free tier (demo) to save RAM; 2 for paid
 _free_tier = os.getenv("FREE_TIER", "false").lower() == "true"
 _executor = ThreadPoolExecutor(
     max_workers=1 if _free_tier else 2,
     thread_name_prefix="api",
 )
 
-# Request/Response Models - field constraints for production (prevent abuse)
 MAX_RESUME_LEN = 50_000
 MAX_JOB_DESC_LEN = 100_000
 MAX_QUESTION_LEN = 2_000
@@ -77,16 +69,6 @@ class StatusResponse(BaseModel):
 @router.post("/resume/analyze")
 @limiter.limit("15/minute")
 async def analyze_resume(request: Request, body: ResumeAnalysisRequest) -> Dict:
-    """
-    POST /api/resume/analyze
-    Analyzes a resume against a job description.
-    
-    Request body:
-    {
-        "resume_text": "User's resume text...",
-        "job_url": "https://indeed.com/viewjob?jk=..."
-    }
-    """
     try:
         if not body.job_description and not body.job_url:
             raise HTTPException(status_code=400, detail="Provide job_url or job_description")
@@ -116,22 +98,6 @@ async def analyze_resume(request: Request, body: ResumeAnalysisRequest) -> Dict:
 @router.post("/generate/answer")
 @limiter.limit("15/minute")
 async def generate_answer(request: Request, body: GenerateAnswerRequest) -> Dict:
-    """
-    POST /api/generate/answer
-    Generates a tailored answer to an application question.
-    
-    Request body:
-    {
-        "question": "Why are you a good fit?",
-        "user_profile": {
-            "work_history": "...",
-            "skills": ["...", "..."],
-            "education": "...",
-            "additional_info": "..."
-        },
-        "job_url": "https://indeed.com/viewjob?jk=..."
-    }
-    """
     try:
         if not body.job_description and not body.job_url:
             raise HTTPException(status_code=400, detail="Provide job_url or job_description")
@@ -162,10 +128,6 @@ async def generate_answer(request: Request, body: GenerateAnswerRequest) -> Dict
 @router.post("/resume/extract")
 @limiter.limit("20/minute")
 async def extract_resume_profile(request: Request, body: ExtractResumeRequest) -> Dict:
-    """
-    POST /api/resume/extract
-    Extracts work_history, skills, education from resume text using AI.
-    """
     try:
         result = extract_resume_profile_endpoint(body.resume_text)
         if not result.get("success"):
@@ -179,8 +141,6 @@ async def extract_resume_profile(request: Request, body: ExtractResumeRequest) -
 
 
 class RankJobsForUserRequest(BaseModel):
-    """Request body for POST /api/job/rank-for-user."""
-
     user_id: str = Field(..., min_length=1, max_length=64, description="Supabase auth user UUID")
     max_jobs: int = Field(60, ge=1, le=150, description="Max candidate jobs to fetch (ZipRecruiter + DailyAIJobs + AIWorkPortal)")
     max_ranked: int = Field(50, ge=1, le=100, description="Max ranked jobs to return from DeepSeek R1")
@@ -189,13 +149,6 @@ class RankJobsForUserRequest(BaseModel):
 @router.post("/job/rank-for-user")
 @limiter.limit("10/minute")
 async def job_rank_for_user(request: Request, body: RankJobsForUserRequest) -> Dict:
-    """
-    POST /api/job/rank-for-user
-    Uses profile from preferences DB (skills, experience, interests), fetches candidate jobs
-    (from discover), then DeepSeek R1 reasons and returns ranked jobs + explanations.
-
-    Body: { "user_id": "uuid", "max_jobs": 60, "max_ranked": 50 }
-    """
     try:
         if not get_config().OPENAI_API_KEY:
             raise HTTPException(status_code=503, detail="OPENAI_API_KEY not set. LLM required for ranking.")
@@ -226,11 +179,6 @@ async def job_discover(
     location: str = "",
     max_results: int = 20,
 ) -> Dict:
-    """
-    GET /api/job/discover?q=software+engineer&location=remote&max_results=60
-    Discover jobs from Jooble API. Uses 500 requests/day limit; response includes jooble_remaining.
-    Use profile roles/skills as q for personalized results.
-    """
     try:
         max_results = min(max(1, max_results), 60)
         loop = asyncio.get_event_loop()
@@ -247,15 +195,6 @@ async def job_discover(
 @router.post("/job/scrape")
 @limiter.limit("15/minute")
 async def scrape_job(request: Request, body: ScrapeJobRequest) -> Dict:
-    """
-    POST /api/job/scrape
-    Scrapes a job description from a URL.
-    
-    Request body:
-    {
-        "job_url": "https://indeed.com/viewjob?jk=..."
-    }
-    """
     try:
         if not body.job_url or not body.job_url.strip():
             raise HTTPException(status_code=400, detail="Provide job_url")
@@ -280,10 +219,6 @@ async def scrape_job(request: Request, body: ScrapeJobRequest) -> Dict:
 @router.get("/status", response_model=StatusResponse)
 @limiter.exempt
 async def get_status() -> StatusResponse:
-    """
-    GET /api/status
-    Get service status and configuration.
-    """
     config = get_config()
     return StatusResponse(
         status='running',

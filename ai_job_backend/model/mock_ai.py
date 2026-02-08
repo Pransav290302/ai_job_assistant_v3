@@ -1,27 +1,10 @@
-"""
-Mock AI Responses for Demo/Presentation
-Provides sample responses when OpenAI API is not available
-"""
-
 from typing import Dict, List
 
 
 def get_mock_resume_analysis(resume_text: str, job_description: str) -> Dict:
-    """
-    Generate a mock resume analysis for demonstration purposes.
-    
-    Args:
-        resume_text: User's resume text
-        job_description: Job description text
-        
-    Returns:
-        Dictionary with mock analysis results
-    """
-    # Simple keyword matching for demo
     resume_lower = resume_text.lower()
     jd_lower = job_description.lower()
     
-    # Extract some keywords from job description
     common_skills = ['python', 'javascript', 'java', 'sql', 'aws', 'docker', 
                      'kubernetes', 'react', 'node', 'django', 'flask', 'postgresql',
                      'mongodb', 'git', 'agile', 'scrum', 'api', 'rest', 'microservices']
@@ -29,7 +12,7 @@ def get_mock_resume_analysis(resume_text: str, job_description: str) -> Dict:
     found_skills = [skill for skill in common_skills if skill in resume_lower]
     missing_skills = [skill for skill in common_skills if skill in jd_lower and skill not in resume_lower][:5]
     
-    # Calculate a mock score
+
     match_score = min(85, 60 + len(found_skills) * 3)
     
     return {
@@ -55,17 +38,6 @@ def get_mock_resume_analysis(resume_text: str, job_description: str) -> Dict:
 
 
 def get_mock_tailored_answer(question: str, user_profile: Dict, job_description: str) -> str:
-    """
-    Generate a mock tailored answer for demonstration purposes.
-    
-    Args:
-        question: Application question
-        user_profile: User profile dictionary
-        job_description: Job description text
-        
-    Returns:
-        Mock generated answer text
-    """
     work_history = user_profile.get('work_history', '')
     skills = user_profile.get('skills', [])
     education = user_profile.get('education', '')

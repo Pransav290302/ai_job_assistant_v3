@@ -1,7 +1,3 @@
-"""
-Pydantic schemas keep request/response contracts explicit.
-"""
-
 from datetime import datetime
 from typing import Optional
 
@@ -15,8 +11,6 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """User profile (no password). For GET /api/users/{userId}."""
-
     id: int
     email: str
     full_name: str

@@ -1,7 +1,3 @@
-"""
-Users API – assignment contract: POST /api/users, GET /api/users/{userId}.
-"""
-
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,10 +15,6 @@ router = APIRouter(prefix="/api", tags=["users"])
 @router.post("/users", status_code=201)
 @limiter.exempt
 def create_user(payload: UserCreate, db: db_dependency):
-    """
-    POST /api/users – Create a new user profile.
-    Same semantics as POST /auth/register; provided for assignment contract.
-    """
     existing = db.query(models.User).filter(models.User.email == payload.email).first()
     if existing:
         logger.warning("Create user failed: email already registered", extra={"email": payload.email})
@@ -43,10 +35,6 @@ def create_user(payload: UserCreate, db: db_dependency):
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: db_dependency, user: user_dependency):
-    """
-    GET /api/users/{userId} – Fetch a user profile (no password).
-    Requires JWT. Returns 404 if user not found.
-    """
     target = db.query(models.User).filter(models.User.id == user_id).first()
     if not target:
         logger.info("User not found", extra={"user_id": user_id})

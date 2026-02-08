@@ -33,7 +33,6 @@ client = get_config().create_openai_client(
 
 @router.get("/health")
 def health_check():
-    """Verify jobs service status."""
     return {"status": "online", "service": "jobs"}
 
 
@@ -43,7 +42,7 @@ async def analyze_job(
     db: db_dependency,
     user: user_dependency,
 ):
-    """Scrape and analyze a job posting. Requires JWT."""
+
     current_user_id = user.get("id")
     url = payload.url
 
@@ -59,7 +58,7 @@ async def analyze_job(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Scraping failed: {str(e)}")
 
-    # 2) Analyze (placeholder AI call)
+
     try:
         completion = client.chat.completions.create(
             model=get_config().OPENAI_MODEL,
@@ -78,7 +77,6 @@ async def analyze_job(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Analysis failed: {str(e)}")
 
-    # 3) Persist
     new_job = models.Job(
         title=page_title[:150],
         company="Extracted via AI",

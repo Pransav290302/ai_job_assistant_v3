@@ -1,8 +1,3 @@
-"""
-Prompt templates for the AI Job Assistant (Senior Data Scientist todo).
-Centralized prompts for resume scoring and tailored answers.
-"""
-
 RESUME_SCORER_PROMPT = """
 You are an expert ATS (Applicant Tracking System) and resume analyzer.
 
@@ -101,7 +96,7 @@ def format_tailored_answer_prompt(
     )
 
 
-# Profile Extraction (for resume → structured profile)
+
 
 PROFILE_EXTRACT_PROMPT = """
 Extract structured information from this resume. Return valid JSON only. No markdown, no code block.
@@ -132,6 +127,5 @@ Return a JSON object with exactly: work_history, skills, education, additional_i
 
 
 def format_profile_extract_prompt(resume_text: str) -> str:
-    """Format PROFILE_EXTRACT_PROMPT with truncated resume to avoid token limits."""
     max_resume = 6000
     return PROFILE_EXTRACT_PROMPT.format(resume_text=resume_text[:max_resume])

@@ -1,8 +1,3 @@
-"""
-Tailored Answer Generator Agent
-Generates personalized answers to application questions based on user profile and job description.
-"""
-
 import logging
 import os
 from typing import Dict, Optional
@@ -11,29 +6,15 @@ from dotenv import load_dotenv
 
 from model.utils.config import get_config
 
-# Load environment variables from .env file
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
 class AnswerGenerator:
-    """
-    AI agent that generates tailored answers to job application questions.
-    Acts as a career coach to help users write compelling responses.
-    """
-    
     def __init__(self, temperature: float = 0.7,
                  api_key: Optional[str] = None, base_url: Optional[str] = None):
-        """
-        Initialize the answer generator.
-        
-        Args:
-            temperature: Sampling temperature (higher = more creative)
-            api_key: API key (if None, reads from environment)
-            base_url: Base URL for API (if None, uses OpenAI default)
-        """
-        # Use OpenAI client (defaults to https://api.openai.com/v1 if base_url not provided)
         final_api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not final_api_key:
             raise ValueError(
@@ -78,7 +59,6 @@ Write a compelling answer that would make a hiring manager want to interview thi
         logger.info(f"Generating tailored answer for question: {question[:50]}...")
         
         try:
-            # Extract profile information
             work_history = user_profile.get('work_history', 'Not provided')
             skills = user_profile.get('skills', [])
             if isinstance(skills, list):
@@ -86,7 +66,7 @@ Write a compelling answer that would make a hiring manager want to interview thi
             education = user_profile.get('education', 'Not provided')
             additional_info = user_profile.get('additional_info', '')
             
-            # Format the user prompt
+            
             user_prompt = f"""Generate a tailored answer to this application question:
 
 QUESTION: {question}
@@ -102,7 +82,7 @@ JOB DESCRIPTION:
 
 Write a compelling, personalized answer that connects the user's background to this specific role."""
             
-            # Call OpenAI API using the same pattern as the backend
+            
             completion = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
@@ -125,18 +105,5 @@ Write a compelling, personalized answer that connects the user's background to t
 def generate_tailored_answer(question: str, user_profile: Dict, job_description: str,
                             api_key: Optional[str] = None,
                             base_url: Optional[str] = None) -> str:
-    """
-    Convenience function for generating tailored answers.
-    
-    Args:
-        question: The application question
-        user_profile: Dictionary with user profile data
-        job_description: The job description text
-        api_key: API key (optional, reads from environment if not provided)
-        base_url: Base URL for API (optional, uses OpenAI default if not provided)
-        
-    Returns:
-        Generated answer text
-    """
     generator = AnswerGenerator(api_key=api_key, base_url=base_url)
     return generator.generate(question, user_profile, job_description)

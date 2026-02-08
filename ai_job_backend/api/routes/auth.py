@@ -64,7 +64,7 @@ def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: db_dependency,
 ):
-    """Issue a JWT access token using OAuth2 password flow."""
+
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(

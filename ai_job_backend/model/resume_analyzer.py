@@ -1,8 +1,3 @@
-"""
-Resume Analyzer Agent
-Analyzes resume against job description to provide match score and suggestions.
-"""
-
 import json
 import logging
 import os
@@ -13,7 +8,6 @@ from dotenv import load_dotenv
 
 from model.utils.config import get_config
 
-# Load environment variables from .env file
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -25,27 +19,9 @@ def analyze_resume_and_jd(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None
 ) -> Dict:
-    """
-    Analyze resume against job description. Uses Azure ML DeepSeek-R1.
-    
-    Args:
-        resume_text: User's resume text
-        job_description: Job description text
-        api_key: API key (optional, reads from environment if not provided)
-        base_url: Base URL for API (optional)
-        
-    Returns:
-        Dictionary with analysis results including:
-        - score: Match score (0-100)
-        - suggestions: List of improvement suggestions
-        - strengths: List of strengths
-        - missing_skills: List of missing skills
-        - match_percentage: Match percentage as float
-    """
     logger.info("Analyzing resume against job description...")
     
     try:
-        # Initialize OpenAI client (defaults to https://api.openai.com/v1 if base_url not provided)
         final_api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not final_api_key:
             raise ValueError(
@@ -94,14 +70,13 @@ Format your response as valid JSON only."""
         
         response_text = completion.choices[0].message.content.strip()
         
-        # Extract JSON from response (in case there's extra text)
+     
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             response_text = json_match.group(0)
         
         analysis = json.loads(response_text)
         
-        # Ensure all required fields exist
         result = {
             "score": analysis.get("score", 0),
             "suggestions": analysis.get("suggestions", []),
@@ -115,7 +90,7 @@ Format your response as valid JSON only."""
         
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON response: {str(e)}")
-        # Fallback: return basic structure
+    
         return {
             "score": 70,
             "suggestions": ["Review the analysis response format"],

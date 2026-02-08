@@ -1,8 +1,3 @@
-"""
-Database function to retrieve a user's profile.
-Used by the agent as a tool to get profile data for tailored answers.
-"""
-
 import os
 from typing import Any, Dict
 
@@ -12,16 +7,6 @@ load_dotenv()
 
 
 def get_user_profile_from_db(user_id: str) -> Dict[str, Any]:
-    """
-    Retrieve user profile from database (Supabase: profiles + user_preferences).
-    Returns a dict suitable for generate_answer (work_history, skills, education).
-
-    Args:
-        user_id: Supabase auth user UUID.
-
-    Returns:
-        Profile dict or error message.
-    """
     url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:

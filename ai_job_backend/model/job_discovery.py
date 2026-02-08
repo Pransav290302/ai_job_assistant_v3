@@ -1,10 +1,3 @@
-"""
-Job discovery via Jooble REST API only.
-Uses user profile (preferences/resume) for keywords and location.
-DeepSeek R1 ranking is done in job_matches.rank_jobs_for_user.
-Jooble free tier: 500 requests per day — we count and enforce the limit.
-"""
-
 import logging
 import os
 from datetime import date, datetime
@@ -14,24 +7,21 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Jooble API (https://jooble.org/api/about, https://help.jooble.org REST API)
+
 JOOBLE_API_BASE = "https://jooble.org/api"
-# Free tier limit: 500 requests per day. We count each POST and stop when reached.
+
 JOOBLE_MAX_REQUESTS_PER_DAY = 500
-# Max API calls per discover_jobs() to conserve quota (each page = 1 request)
 JOOBLE_MAX_REQUESTS_PER_CALL = 2
 JOOBLE_RESULTS_PER_PAGE = 20
 
-# Query/location length caps for API
+
 MAX_QUERY_LEN = 80
 MAX_LOCATION_LEN = 60
 
-# In-memory usage: date string and count. Resets when date changes.
 _jooble_usage: Dict[str, Any] = {"date": "", "count": 0}
 
 
 def _jooble_usage_check() -> bool:
-    """Return True if we can make a Jooble request (under daily limit)."""
     today = date.today().isoformat()
     if _jooble_usage["date"] != today:
         _jooble_usage["date"] = today
@@ -55,11 +45,6 @@ def discover_jooble(
     location: str = "",
     max_results: int = 60,
 ) -> List[Dict[str, Any]]:
-    """
-    Fetch jobs from Jooble REST API.
-    POST /api/{key} with keywords and location. Returns list of {title, company, url, snippet, source}.
-    Respects 500 requests/day: returns [] when limit reached.
-    """
     jobs: List[Dict[str, Any]] = []
     key = (os.getenv("JOOBLE_API_KEY") or "").strip()
     if not key:
@@ -137,11 +122,6 @@ def discover_jobs(
     location: str = "",
     max_results: int = 60,
 ) -> Dict[str, Any]:
-    """
-    Discover jobs from Jooble API only (profile-based query/location).
-    Respects 500 requests/day. Ranking by DeepSeek R1 is done in rank_jobs_for_user.
-    Returns { success, jobs, query, location, source, jooble_remaining }.
-    """
     jobs = discover_jooble(query=query, location=location, max_results=max_results)
     remaining = _jooble_usage_remaining()
 
