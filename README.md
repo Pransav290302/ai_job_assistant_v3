@@ -17,6 +17,16 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - Wire API calls through `services/apiClient` to keep fetch logic centralized.
 
 ![Home Page](ai_job_frontend/ai_job_frontend/public/home_page.png)
+<details>
+  <summary>Click to view more screenshots</summary>
+  <img src="ai_job_frontend/ai_job_frontend/public/login_page.png" width="700">
+  <img src="ai_job_frontend/ai_job_frontend/public/match_job.png" width="700">
+  <img src="ai_job_frontend/ai_job_frontend/public/manage_doc.png" width="700">
+  <img src="ai_job_frontend/ai_job_frontend/public/resume_analyze.png" width="700">
+  <img src="ai_job_frontend/ai_job_frontend/public/assistant1.png" width="700">
+   <img src="ai_job_frontend/ai_job_frontend/public/about.png" width="700">
+</details>
+
 ![Login Page](ai_job_frontend/ai_job_frontend/public/login_page.png)
 ![Match Page](ai_job_frontend/ai_job_frontend/public/match_job.png)
 ![manage_doc](ai_job_frontend/ai_job_frontend/public/manage_doc.png)
