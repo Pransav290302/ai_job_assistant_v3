@@ -17,6 +17,8 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - Wire API calls through `services/apiClient` to keep fetch logic centralized.
 
 ![Home Page](ai_job_frontend/ai_job_frontend/public/home_page.png)
+![Login Page](ai_job_frontend/ai_job_frontend/public/login_page.png)
+![Match Page](ai_job_frontend/ai_job_frontend/public/match_page.png)
 
 ## Backend (FastAPI)
 - `api/main.py`: FastAPI app, CORS, router registration.
