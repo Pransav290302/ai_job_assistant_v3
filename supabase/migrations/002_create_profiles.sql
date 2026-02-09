@@ -1,6 +1,3 @@
--- Create profiles table for user profile data
--- Run this in Supabase SQL Editor or via: supabase db push
-
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text,
@@ -13,21 +10,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at timestamptz DEFAULT now()
 );
 
--- Enable RLS (Row Level Security)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own profile
+
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
--- Users can update their own profile (for client updates)
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- Trigger: auto-create profile on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -47,7 +41,6 @@ BEGIN
 END;
 $$;
 
--- Drop existing trigger if any (idempotent)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 CREATE TRIGGER on_auth_user_created
