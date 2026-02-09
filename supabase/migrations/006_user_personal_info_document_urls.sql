@@ -1,6 +1,3 @@
--- Add resume and cover letter storage paths to user_personal_info.
--- Run in Supabase SQL Editor or via: supabase db push
-
 ALTER TABLE public.user_personal_info
   ADD COLUMN IF NOT EXISTS resume_url text,
   ADD COLUMN IF NOT EXISTS cover_letter_url text;
