@@ -16,6 +16,9 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - Sidebar-first layout mirrors simplify.jobs/copilot UX philosophy.
 - Wire API calls through `services/apiClient` to keep fetch logic centralized.
 
+
+### Screenshots
+#### Home Page
 ![Home Page](ai_job_frontend/ai_job_frontend/public/home_page.png)
 <details>
   <summary>Click to view more screenshots</summary>
@@ -26,13 +29,6 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
   <img src="ai_job_frontend/ai_job_frontend/public/assistant1.png" width="700">
    <img src="ai_job_frontend/ai_job_frontend/public/about.png" width="700">
 </details>
-
-![Login Page](ai_job_frontend/ai_job_frontend/public/login_page.png)
-![Match Page](ai_job_frontend/ai_job_frontend/public/match_job.png)
-![manage_doc](ai_job_frontend/ai_job_frontend/public/manage_doc.png)
-![resume_analyze](ai_job_frontend/ai_job_frontend/public/resume_analyze.png)
-![ans_gen](ai_job_frontend/ai_job_frontend/public/assistant1.png)
-![about](ai_job_frontend/ai_job_frontend/public/about.png)
 
 ## Backend (FastAPI)
 - `api/main.py`: FastAPI app, CORS, router registration.
