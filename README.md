@@ -30,7 +30,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
    <img src="ai_job_frontend/ai_job_frontend/public/about.png" width="700">
 </details>
 
-## Backend FastAPI)
+## Backend - FastAPI
 - `api/main.py`: FastAPI app, CORS, router registration.
 - `api/routes`: HTTP surface (`auth`, `jobs`, `health`). Keep routes thin.
 - `api/dependencies`: Shared FastAPI dependencies (DB session, auth guards).
