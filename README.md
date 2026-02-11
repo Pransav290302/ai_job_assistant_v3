@@ -68,6 +68,6 @@ npm run dev
 
 ## Future hooks
 - Autofill Agent: store profile data and surface in applications.
-- Resume↔JD Scoring: service layer in `api/services` + UI in `resume/`.
+- Resume↔JD Scoring: service layer in `api/services` and UI in `resume/`.
 - Tailored Answers: connect to AI provider; render in `applications/`.
 - Tracking Dashboard: persist app states in Postgres; display in `dashboard/`.
