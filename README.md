@@ -13,7 +13,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 
 ### Notes
 - App Router, typed pages, and Tailwind for rapid SaaS UI iteration.
-- Sidebar-first layout mirrors simplify.jobs/copilot UX philosophy.
+- Sidebar-first layout mirrors simplify.jobs and opilot UX philosophy.
 - Wire API calls through `services/apiClient` to keep fetch logic centralized.
 
 
