@@ -3,10 +3,10 @@
 Production-ready starter for a Simplify Copilot–inspired web app. Clean separation between frontend (Next.js) and backend (FastAPI) with room for AI agents, auth, and dashboards.
 
 ## Frontend (Next.js / TypeScript / Tailwind)
-- `src/app/(auth)`: Auth surface (JWT wiring pending).
+- `src/app/(auth)`: Auth surface JWT wiring pending.
 - `src/app/dashboard|applications|resume|profile`: Dashboard-first pages for the four pillars.
-- `src/components/layout`: `AppShell` + `Sidebar` keep navigation consistent.
-- `src/components/ui`: Reusable UI primitives (start with `Card`).
+- `src/components/layout`: `AppShell` and `Sidebar` keep navigation consistent.
+- `src/components/ui`: Reusable UI primitives start with `Card`).
 - `src/services`: API client helpers (centralize base URL/env).
 - `src/lib`: Shared constants/utilities.
 - `src/types`: Shared TypeScript models for API contracts.
