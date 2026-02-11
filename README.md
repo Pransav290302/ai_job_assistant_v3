@@ -42,7 +42,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 
 ### Notes
 - JWT-ready auth scaffold using `python-jose` and `passlib[bcrypt]`.
-- Clear lane for AI logic via `api/services` so routes stay composable/testable.
+- Clear lane for AI logic via `api/services` so routes stay composable and testable.
 - `render.yaml` configured to serve `api.main:app` on Render.
 
 ## Environment
