@@ -33,7 +33,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 ## Backend - FastAPI
 - `api/main.py`: FastAPI app, CORS, router registration.
 - `api/routes`: HTTP surface (`auth`, `jobs`, `health`). Keep routes thin.
-- `api/dependencies`: Shared FastAPI dependencies DB session, auth guards).
+- `api/dependencies`: Shared FastAPI dependencies DB session, auth guards.
 - `api/database`: Engine + session factory; env-driven Postgres URL.
 - `api/models`: ORM models (`User`, `Job`) on shared `Base`.
 - `api/schemas`: Pydantic request or response contracts.
