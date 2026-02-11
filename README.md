@@ -8,7 +8,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - `src/components/layout`: `AppShell` and `Sidebar` keep navigation consistent.
 - `src/components/ui`: Reusable UI primitives start with `Card`).
 - `src/services`: API client helpers (centralize base URL/env).
-- `src/lib`: Shared constants/utilities.
+- `src/lib`: Shared constants or utilities.
 - `src/types`: Shared TypeScript models for API contracts.
 
 ### Notes
