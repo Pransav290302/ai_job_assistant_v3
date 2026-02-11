@@ -37,7 +37,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - `api/database`: Engine + session factory; env-driven Postgres URL.
 - `api/models`: ORM models (`User`, `Job`) on shared `Base`.
 - `api/schemas`: Pydantic request/response contracts.
-- `api/services`: Business/AI layer placeholder—keep heavy logic out of routes.
+- `api/services`: AI layer placeholder—keep heavy logic out of routes.
 - `main.py` repo root: Entrypoint alias for `uvicorn`.
 
 ### Notes
