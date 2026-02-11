@@ -38,7 +38,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - `api/models`: ORM models (`User`, `Job`) on shared `Base`.
 - `api/schemas`: Pydantic request/response contracts.
 - `api/services`: Business/AI layer placeholder—keep heavy logic out of routes.
-- `main.py` (repo root): Entrypoint alias for `uvicorn`.
+- `main.py` repo root: Entrypoint alias for `uvicorn`.
 
 ### Notes
 - JWT-ready auth scaffold using `python-jose` and `passlib[bcrypt]`.
