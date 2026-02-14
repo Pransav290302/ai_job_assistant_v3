@@ -35,7 +35,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - `api/routes`: HTTP surface for `auth`, `jobs` and `health`. Keep routes thin.
 - `api/dependencies`: Shared FastAPI dependencies DB session, auth guards.
 - `api/database`: Engine + session factory; env-driven Postgres URL.
-- `api/models`: ORM models for `User` and `Job` on shared `Base`.
+- `api/models`: ORM models for `User` and also `Job` on shared `Base`.
 - `api/schemas`: Pydantic request or response contracts.
 - `api/services`: AI layer placeholder—keep heavy logic out of routes.
 - `main.py` repo root: Entrypoint alias for `uvicorn`.
