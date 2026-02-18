@@ -51,7 +51,7 @@ Production-ready starter for a Simplify Copilot–inspired web app. Clean separa
 - **LLM (OpenAI-compatible):** `OPENAI_API_KEY`, `OPENAI_MODEL`; optional `OPENAI_BASE_URL` for Azurer providers.
 
 ### Using Azure AI Foundry + DeepSeek R1 
-Set `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and `OPENAI_MODEL=DeepSeek-R1` in `ai_job_backend/.env` after deploying DeepSeek R1 in [Microsoft Foundry](https://ai.azure.com). Step-by-step: **[AZURE_DEEPSEEK_SETUP.md](AZURE_DEEPSEEK_SETUP.md)**.
+Set `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and `OPENAI_MODEL=DeepSeek-R1` in `ai_job_backend/.env` after deploying DeepSeek R1 in [Microsoft Foundry](https://ai.azure.com).
 
 ## Running locally
 ```bash
